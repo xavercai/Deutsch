@@ -52,6 +52,27 @@ a{color:var(--blue);text-decoration:none}
 .tabs .tabgap{flex:1 1 auto}
 .tabs button.tab-minor{padding:7px 10px;font-size:12.5px;color:var(--tx3);opacity:.8}
 .tabs button.tab-minor.active{color:var(--ac);border-bottom-color:var(--ac);background:#f0a92c0d}
+/* 词块高亮 / 按键播放态 */
+.chunk.speaking{border-color:var(--ac);background:#241d0f}
+.chunk.speaking .c-de{color:var(--ac2)}
+.btn.on{background:#243040;border-color:var(--ac);color:var(--ac2)}
+
+/* ---------- 手机端：顶部只留日期 + 当前模块，其余收到页底 ---------- */
+.bottomnav{display:none}
+@media(max-width:700px){
+  .tb-row .chip{display:none}
+  #chipDate{display:inline-flex}
+  .brand small{display:none}
+  .tabs{overflow:visible}
+  .tabs .tabgap{display:none}
+  .tabs .tab-minor{display:none}
+  .tabs .tab-primary{display:none}
+  .tabs .tab-primary.current{display:inline-flex}
+  .tabs.expanded .tab-primary{display:inline-flex}
+  .bottomnav{display:flex;gap:8px;justify-content:center;margin:26px 0 4px;padding-top:14px;border-top:1px solid var(--line)}
+  .bottomnav button{padding:9px 16px;border-radius:10px;background:var(--bg3);border:1px solid var(--line);color:var(--tx2);font-size:13.5px}
+  .bottomnav button.active{border-color:var(--ac);color:var(--ac2);background:#f0a92c10;font-weight:600}
+}
 
 .view{display:none}
 .view.active{display:block;animation:fade .22s ease}
@@ -227,9 +248,9 @@ body.no-voice .speedbar button{cursor:not-allowed}
       <span class="chip" id="chipStreak">🔥 连续 <b id="badgeStreak">0</b> 天</span>
     </div>
     <nav class="tabs" id="tabs">
-      <button data-view="lesson" class="active">① 今天跟读</button>
-      <button data-view="review">② 复习</button>
-      <button data-view="news">③ 每日新闻</button>
+      <button data-view="lesson" class="tab-primary current active">① 今天跟读</button>
+      <button data-view="review" class="tab-primary">② 复习</button>
+      <button data-view="news" class="tab-primary">③ 每日新闻</button>
       <span class="tabgap"></span>
       <button data-view="bank" class="tab-minor">语料</button>
       <button data-view="share" class="tab-minor">分享</button>
@@ -666,6 +687,13 @@ body.no-voice .speedbar button{cursor:not-allowed}
       </div>
     </div>
   </section>
+
+  <!-- 手机端：主模块之外的入口放在页面底部 -->
+  <nav class="bottomnav" id="bottomnav">
+    <button data-view="bank">语料</button>
+    <button data-view="share">分享</button>
+    <button data-view="settings">设置</button>
+  </nav>
 
 </div>
 <div class="toast" id="toast"></div>
@@ -2998,14 +3026,15 @@ const TTS = {
   },
   _stopKeep(){ if (this._keep) { clearInterval(this._keep); this._keep = null; } },
 
-  /* 按词块停顿朗读：每块之间插入静默 */
+  /* 按词块停顿朗读：每块之间插入静默；onChunk(i,c) 在每块开始前回调，便于高亮当前词块 */
   async speakChunks(chunks, opts = {}){
     if (!this.ready()) { this.onBlocked && this.onBlocked(); return; }
     for (let i = 0; i < chunks.length; i++) {
       if (opts.signal && opts.signal.cancelled) return;
       const c = chunks[i];
       if (c.de) {
-        await this.speak(c.de, {...opts, onWord:(ci)=>opts.onWord && opts.onWord(ci, c)});
+        opts.onChunk && opts.onChunk(i, c);
+        await this.speak(c.de, {...opts, onWord:(ci)=>opts.onWord && opts.onWord(ci, c, i)});
       }
       if (i < chunks.length - 1) await sleep(opts.gap != null ? opts.gap : 420);
     }
@@ -3108,6 +3137,36 @@ const AudioGate = {
   }
 };
 
+/* =====================================================================
+   音频逐词高亮计时器
+   ---------------------------------------------------------------------
+   ontimeupdate 只有 ~4 次/秒，而且合成音频（edge-tts / Azure）开头常带一小段
+   静音，直接用 currentTime/duration 映射字符位置会明显滞后于读音：
+   声音已经读到后面了，高亮还停在前面；读完时最后一个词也要等一会儿才亮。
+   这里改用 requestAnimationFrame 高频推进，按播放时长给一点提前量，
+   并在读完时强制落到最后一个词。holder 是各引擎自己的持久对象，用于取消旧计时器。
+   ===================================================================== */
+function audioWordTicker(a, text, onWord, holder){
+  if (holder && holder.raf) { cancelAnimationFrame(holder.raf); holder.raf = 0; }
+  if (!onWord) return;
+  const eng = holder || {};
+  const n = Math.max(1, (text || "").length);
+  const tick = () => {
+    eng.raf = 0;
+    const d = a.duration;
+    if (d && isFinite(d) && d > 0) {
+      const lead = Math.min(0.30, 0.05 * d);          // 提前量：抵消开头静音与感知延迟
+      const p = Math.max(0, Math.min(1, (a.currentTime + lead) / d));
+      onWord(Math.min(n - 1, Math.round(n * p)));
+    }
+    if (!a.paused && !a.ended) eng.raf = requestAnimationFrame(tick);
+  };
+  eng.raf = requestAnimationFrame(tick);
+}
+function stopWordTicker(holder){
+  if (holder && holder.raf) { cancelAnimationFrame(holder.raf); holder.raf = 0; }
+}
+
 /* 生成一段 0.1 秒的静音 WAV（8kHz 单声道 8bit），用于解锁 */
 function silentWavUrl(){
   const sr = 8000, n = 800;
@@ -3140,7 +3199,7 @@ const AZURE_MALE_DE = [
 const OPENAI_VOICES = [["onyx","onyx（低沉稳重，最接近中年男声）"],["echo","echo（男）"],["alloy","alloy（中性）"],["fable","fable（偏英式）"],["nova","nova（女）"],["shimmer","shimmer（女）"]];
 
 const CloudTTS = {
-  cache: new Map(), cur: null, maxCache: 60,
+  cache: new Map(), cur: null, maxCache: 60, _tick: {},
 
   cfg(){ return DB.settings.cloud || {}; },
 
@@ -3248,11 +3307,12 @@ const CloudTTS = {
       a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
       a.playbackRate = this.nativeRate() ? 1 : rate;
       a.onplay = () => { TTS.speaking = true; opts.onStatus && opts.onStatus(""); opts.onStart && opts.onStart(); };
-      a.ontimeupdate = () => {
-        if (!a.duration) return;
-        if (opts.onWord) opts.onWord(Math.round(text.length * a.currentTime / a.duration));
+      audioWordTicker(a, text, opts.onWord, this._tick);
+      a.onended = () => {
+        stopWordTicker(this._tick);
+        if (opts.onWord) opts.onWord(Math.max(0, String(text).length - 1));
+        TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({done:true});
       };
-      a.onended = () => { TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({done:true}); };
       a.onerror = () => { TTS.speaking = false; opts.onError && opts.onError(new Error("音频播放失败")); opts.onEnd && opts.onEnd(); resolve({done:false}); };
       try { await AudioGate.play(url); }
       catch(e) { TTS.speaking = false; opts.onError && opts.onError(e); opts.onEnd && opts.onEnd(); resolve({done:false, error:"浏览器阻止了播放：" + e.message}); }
@@ -3260,6 +3320,7 @@ const CloudTTS = {
   },
 
   stop(){
+    stopWordTicker(this._tick);
     const a = this.cur;
     this.cur = null;
     if (a) {
@@ -3307,7 +3368,7 @@ const LocalTTS = {
   APP_ID: "deutsch-news-coach-tts",
   base: null, port: null, engineName: null, voices: [], detected: false, lastError: "",
   probed: false,
-  cache: new Map(), cur: null, maxCache: 150,
+  cache: new Map(), cur: null, maxCache: 150, _tick: {},
 
   /* 探测本地服务：并行探测 + 自动重试，避免服务晚于页面启动时误判 */
   async detect(rounds = 3){
@@ -3442,10 +3503,12 @@ const LocalTTS = {
       const a = AudioGate.ensure();          // 复用已解锁的元素，iOS 才肯出声
       this.cur = a;
       a.onplay = () => { TTS.speaking = true; opts.onStart && opts.onStart(); };
-      a.ontimeupdate = () => {
-        if (a.duration && opts.onWord) opts.onWord(Math.round(text.length * a.currentTime / a.duration));
+      audioWordTicker(a, text, opts.onWord, this._tick);
+      a.onended = () => {
+        stopWordTicker(this._tick);
+        if (opts.onWord) opts.onWord(Math.max(0, String(text).length - 1));
+        TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:true });
       };
-      a.onended = () => { TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:true }); };
       a.onerror = () => { TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:false }); };
       try { await AudioGate.play(url); }
       catch(e) {
@@ -3458,6 +3521,7 @@ const LocalTTS = {
   },
 
   stop(){
+    stopWordTicker(this._tick);
     const a = this.cur;
     this.cur = null;
     if (a) {
@@ -3485,7 +3549,7 @@ const LocalTTS = {
    ===================================================================== */
 
 const EmbeddedTTS = {
-  cur: null, _hosted: null, _loaded: false,
+  cur: null, _hosted: null, _loaded: false, _tick: {},
 
   /* 语音表有两个来源：
      1) window.EMBED_AUDIO —— 手机版把语料音频以 data URI 内嵌进 HTML；
@@ -3551,10 +3615,13 @@ const EmbeddedTTS = {
       };
       a.onloadedmetadata = applyRate;
       a.onplay = () => { applyRate(); TTS.speaking = true; opts.onStart && opts.onStart(); };
-      a.ontimeupdate = () => {
-        if (a.duration && opts.onWord) opts.onWord(Math.round(text.length * a.currentTime / a.duration));
+      a.ontimeupdate = null;   // 改用高频计时器，见 audioWordTicker
+      audioWordTicker(a, text, opts.onWord, this._tick);
+      a.onended = () => {
+        stopWordTicker(this._tick);
+        if (opts.onWord) opts.onWord(Math.max(0, String(text).length - 1));   // 读完时强制落到最后一个词
+        TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:true });
       };
-      a.onended = () => { TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:true }); };
       a.onerror = () => {
         const code = a.error ? a.error.code : 0;
         this.lastError = "audio-error code=" + code;
@@ -3592,6 +3659,7 @@ const EmbeddedTTS = {
   },
 
   stop(){
+    stopWordTicker(this._tick);
     const a = this.cur; this.cur = null;
     if (a) {
       try { a.pause(); a.onended = null; a.onerror = null; a.ontimeupdate = null; a.onplay = null; a.onloadedmetadata = null; } catch(e){}
@@ -4677,15 +4745,40 @@ const App = {
   },
 
   bindTabs(){
-    document.getElementById("tabs").addEventListener("click", e => {
+    const tabs = document.getElementById("tabs");
+    tabs.addEventListener("click", e => {
+      const b = e.target.closest("button[data-view]"); if (!b) return;
+      // 手机端：再点一次“当前主模块”就展开/收起另外两个模块
+      if (b.classList.contains("tab-primary") && b.classList.contains("current")) {
+        tabs.classList.toggle("expanded");
+        return;
+      }
+      this.switchView(b.dataset.view);
+    });
+    const bn = document.getElementById("bottomnav");
+    if (bn) bn.addEventListener("click", e => {
       const b = e.target.closest("button[data-view]"); if (!b) return;
       this.switchView(b.dataset.view);
+    });
+    // 点模块菜单以外的地方就收起
+    document.addEventListener("click", e => {
+      if (tabs && !tabs.contains(e.target)) tabs.classList.remove("expanded");
     });
   },
   switchView(v){
     // 「跟读矫正」是「① 今天跟读」的展开视图，切过去时仍高亮第一个标签
     const tab = (v === "shadow") ? "lesson" : v;
-    document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.view === tab));
+    const tabs = document.getElementById("tabs");
+    if (tabs) {
+      tabs.classList.remove("expanded");
+      tabs.querySelectorAll("button").forEach(b => {
+        const on = b.dataset.view === tab;
+        b.classList.toggle("active", on);
+        if (b.classList.contains("tab-primary")) b.classList.toggle("current", on);
+      });
+    }
+    const bn = document.getElementById("bottomnav");
+    if (bn) bn.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.view === v));
     document.querySelectorAll(".view").forEach(s => s.classList.toggle("active", s.id === "view-" + v));
     if (v === "review") this.renderReview();
     if (v === "bank") this.renderBank();
@@ -4781,13 +4874,16 @@ const App = {
       </h3>
       <div class="de" data-de="${n.id}">${escapeHtml(n.de)}</div>
       <div class="zh">${escapeHtml(n.zh || "")}</div>
-      <div class="chunks">${(n.chunks || []).map(c => `<span class="chunk"><span class="c-de">${escapeHtml(c.de)}</span><span class="c-zh">${escapeHtml(c.zh || "")}</span></span>`).join("")}</div>
+      <!-- 三个控制键放在“完整句”和“分词块”之间；均无默认高亮 -->
+      <div class="btnrow ctrlrow" style="margin-top:10px">
+        <button class="btn" data-act="play">▶ 播放</button>
+        <button class="btn" data-act="chunk">◫ 词块停顿</button>
+        <button class="btn" data-act="loop">🔁 跟读循环</button>
+      </div>
+      <div class="chunks">${(n.chunks || []).map((c, i) => `<span class="chunk" data-chunk="${i}"><span class="c-de">${escapeHtml(c.de)}</span><span class="c-zh">${escapeHtml(c.zh || "")}</span></span>`).join("")}</div>
       <div class="speedbar" data-speeds="${n.id}">${SPEEDS.map(s =>
         `<button data-k="${s.k}" class="${ini && s.k === ini.k ? "active" : ""}">${s.label}<small>${s.sub}</small></button>`).join("")}</div>
       <div class="btnrow" style="margin-top:10px">
-        <button class="btn pri" data-act="play">▶ 播放</button>
-        <button class="btn" data-act="chunk">◫ 词块停顿</button>
-        <button class="btn" data-act="loop">🔁 跟读循环</button>
         <button class="btn ok" data-act="shadow">🎙 去录音跟读</button>
         <button class="btn" data-act="review">➕ 加入复习</button>
         <button class="btn ghost" data-act="teach">👨‍🏫 老师讲这句</button>
@@ -4819,6 +4915,8 @@ const App = {
       card.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
         const n = get(), a = b.dataset.act;
         const sp = (card.querySelector("[data-speeds] button.active") || {}).dataset?.k || this.speed;
+        // 任何新动作开始前，先把上一次的词块/按键高亮清干净
+        clearCardMarks(card);
         if (a === "play") this.playSentence(n, sp);
         if (a === "chunk") this.playChunks(n, sp);
         if (a === "loop") { this.openShadow(n); this.startLoop(); }
@@ -4826,6 +4924,8 @@ const App = {
         if (a === "review") { this.addReview(n); this.toast("已加入复习计划"); }
         if (a === "teach") { this.idx = this.list.indexOf(n); App.switchView("lesson"); Teacher.teach(n); }
       });
+      // 词块里的德语也要切成词 span，才能在「词块停顿」播放时逐词高亮
+      card.querySelectorAll(".chunks .c-de").forEach(el => renderWordsWithOffsets(el.textContent, el));
       const deEl = card.querySelector(".de");
       if (deEl) renderWordsWithOffsets(get().de, deEl);
     });
@@ -4840,11 +4940,40 @@ const App = {
     TTS.speak(n.de, {rate:sp.rate, onWord:(ci) => highlight(spans, ci)});
   },
   playChunks(n, speedKey){
-    if (!n) return;
+    if (!n || !n.de) return;
     const sp = SPEEDS.find(s => s.k === speedKey) || SPEEDS[2];
     const chunks = (n.chunks && n.chunks.length) ? n.chunks : autoChunks(n.de).map(c => ({de:c}));
+    const card = document.querySelector(`.card[data-sid="${n.id}"]`);
+    const chunkEls = card ? [...card.querySelectorAll(".chunks .chunk")] : [];
+    const btn = card ? card.querySelector('[data-act="chunk"]') : null;
     TTS.stop();
-    TTS.speakChunks(chunks.map(c => ({de:c.de})), {rate:sp.rate, gap:260});
+    // 「词块停顿」播放期间该按键保持高亮，播完恢复
+    if (btn) btn.classList.add("on");
+    const clear = () => {
+      chunkEls.forEach(el => {
+        el.classList.remove("speaking");
+        const de = el.querySelector(".c-de");
+        if (de && de._spans) highlight(de._spans, -1);
+      });
+      if (btn) btn.classList.remove("on");
+    };
+    TTS.speakChunks(chunks.map(c => ({de:c.de})), {
+      rate: sp.rate, gap: 260,
+      // 读到哪一块，那一块高亮
+      onChunk: (i) => {
+        chunkEls.forEach((el, k) => {
+          el.classList.toggle("speaking", k === i);
+          if (k !== i) { const de = el.querySelector(".c-de"); if (de && de._spans) highlight(de._spans, -1); }
+        });
+      },
+      // 这一块里读到哪个词，那个词高亮
+      onWord: (ci, c, i) => {
+        const el = chunkEls[i]; if (!el) return;
+        const de = el.querySelector(".c-de");
+        if (de && de._spans) highlight(de._spans, ci);
+      },
+      onEnd: clear
+    });
   },
   wordSpans(el){ return el._spans || (el._spans = collectSpans(el)); },
 
@@ -5673,7 +5802,21 @@ function renderWordsWithOffsets(text, el){
   el._spans = spans;
   return spans;
 }
-function collectSpans(el){ return el._spans || renderWordsWithOffsets(el.textContent, el); }function highlight(spans, charIndex){
+function collectSpans(el){ return el._spans || renderWordsWithOffsets(el.textContent, el); }
+
+/* 清掉一张卡片上的所有播放态标记（词块高亮 + 按键高亮 + 整句词高亮） */
+function clearCardMarks(card){
+  if (!card) return;
+  card.querySelectorAll(".chunks .chunk").forEach(el => {
+    el.classList.remove("speaking");
+    const de = el.querySelector(".c-de");
+    if (de && de._spans) highlight(de._spans, -1);
+  });
+  card.querySelectorAll(".btn.on").forEach(b => b.classList.remove("on"));
+  const d = card.querySelector(".de");
+  if (d && d._spans) highlight(d._spans, -1);
+}
+function highlight(spans, charIndex){
   if (!spans) return;
   for (const s of spans) s.el.classList.remove("speaking");
   if (charIndex < 0) return;
