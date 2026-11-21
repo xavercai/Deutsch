@@ -1,31 +1,47 @@
 name: daily-news
+
+# 每天北京时间 05:00：抓当天德语新闻 + 用免 Key 的 edge-tts 预合成 Conrad 语音。
+# GitHub 服务器在境外，能直连德国新闻站和微软语音通道；生成后提交，Pages 自动重部署。
 on:
   schedule:
     - cron: "0 21 * * *"
   workflow_dispatch:
+
 permissions:
   contents: write
+
 concurrency:
   group: daily-news
   cancel-in-progress: false
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install edge-tts
+        run: python -m pip install --disable-pip-version-check edge-tts
+
       - name: Fetch today's sentences
         run: python scripts/fetch_daily.py
-      - name: Commit news/daily.json if changed
+
+      - name: Pre-synthesize Conrad audio (keyless)
+        run: python scripts/build_audio.py
+
+      - name: Commit daily material and audio
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain news/daily.json)" ]; then
-            git add news/daily.json
-            git commit -m "chore(news): daily $(date -u +%F)"
+          git add news/daily.json news/audio.json news/audio
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore(news): daily material + audio $(date -u +%F)"
             git push
           else
-            echo "no change"
+            echo "无变化，跳过提交"
           fi
