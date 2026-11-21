@@ -37,6 +37,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 CORPUS_FILE = HERE / "corpus.json"
 DAILY_FILE = ROOT / "news" / "daily.json"
+WEEKLY_FILE = ROOT / "news" / "weekly.json"
 AUDIO_DIR = ROOT / "news" / "audio"
 INDEX_FILE = ROOT / "news" / "audio.json"
 
@@ -111,9 +112,11 @@ def main() -> int:
     corpus_items = [str(x).strip() for x in (corpus.get("items") or []) if str(x).strip()]
     daily = load_json(DAILY_FILE, {})
     news_items = [str(c.get("text", "")).strip() for c in (daily.get("cards") or []) if str(c.get("text", "")).strip()]
+    weekly = load_json(WEEKLY_FILE, {})
+    weekly_items = [str(x.get("text", "")).strip() for x in (weekly.get("items") or []) if str(x.get("text", "")).strip()]
 
     log(f"=== 预合成 Conrad 语音（{VOICE} {RATE}）===")
-    log(f"  内置语料：{len(corpus_items)} 条   当日新闻：{len(news_items)} 条")
+    log(f"  内置语料：{len(corpus_items)} 条   当日新闻：{len(news_items)} 条   本周新语料：{len(weekly_items)} 条")
 
     # ---- 组装任务 ----
     jobs: list[tuple[str, pathlib.Path]] = []
@@ -130,6 +133,13 @@ def main() -> int:
         fname = f"n-{today_str}-" + sha16(text) + ".mp3"
         jobs.append((text, AUDIO_DIR / fname))
         index[text] = {"0": "news/audio/" + fname}
+
+    # 本周语料：同样按日期命名（周更，过期自动清理）
+    for text in weekly_items:
+        fname = f"n-{today_str}-" + sha16(text) + ".mp3"
+        jobs.append((text, AUDIO_DIR / fname))
+        if text not in index:
+            index[text] = {"0": "news/audio/" + fname}
 
     if args.limit:
         jobs = jobs[: args.limit]

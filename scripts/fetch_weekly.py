@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+每周语料池：每周刷新一次 news/weekly.json
+================================================
+从德语新闻里挑出一批句子（生活 / 汽车各若干条）作为「本周新语料」。
+网页每天从这里取 1 条生活 + 1 条汽车，其余用内置精编 A1 语料补足，
+这样既有新鲜内容，又保证每句都有中文、语法和词汇讲解。
+
+同一周内重复运行会直接跳过（除非加 --force），所以挂在每天的定时任务里也很安全。
+用法：
+    python scripts/fetch_weekly.py
+    python scripts/fetch_weekly.py --force
+"""
+from __future__ import annotations
+
+import datetime as dt
+import json
+import pathlib
+import sys
+
+HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+from fetch_daily import FEEDS, TZ, fetch, norm, parse_items, sentence_from  # noqa: E402
+
+ROOT = HERE.parent
+OUT = ROOT / "news" / "weekly.json"
+
+PER_TOPIC = 12          # 每个主题最多收多少条（够一周每天一条不重复）
+MIN_LEN = 15
+MAX_LEN = 110
+
+
+def log(msg: str) -> None:
+    print(msg, flush=True)
+
+
+def iso_week(d: dt.date) -> str:
+    y, w, _ = d.isocalendar()
+    return f"{y}-W{w:02d}"
+
+
+def main() -> int:
+    week = iso_week(dt.datetime.now(TZ).date())
+    force = "--force" in sys.argv
+
+    if not force and OUT.exists():
+        try:
+            cur = json.loads(OUT.read_text(encoding="utf-8"))
+            got = len(cur.get("items") or [])
+            if cur.get("week") == week and got >= PER_TOPIC:
+                log(f"本周（{week}）语料池已有 {got} 条，跳过刷新。")
+                return 0
+        except Exception:
+            pass
+
+    log(f"=== 生成本周（{week}）语料池 ===")
+    buckets: dict[str, list[dict]] = {"生活": [], "汽车": []}
+    seen: set[str] = set()
+    ok_feeds = 0
+
+    for _fid, name, url, topic in FEEDS:
+        t = topic if topic in buckets else "生活"
+        xml = fetch(url)
+        if not xml:
+            continue
+        items = parse_items(xml, name, t)
+        if items:
+            ok_feeds += 1
+            log(f"  ✓ {name}: {len(items)} 条")
+        for it in items:
+            if len(buckets[t]) >= PER_TOPIC * 2:
+                continue
+            body = sentence_from(it)
+            if not (MIN_LEN <= len(body) <= MAX_LEN):
+                continue
+            key = norm(body)
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            buckets[t].append({"topic": t, "text": body, "source": name,
+                               "link": it.get("link", ""), "title": it.get("title", "")})
+
+    items: list[dict] = []
+    for t in ("生活", "汽车"):
+        for i, x in enumerate(buckets[t][:PER_TOPIC]):
+            items.append({"id": f"W-{week}-{t[0]}{i}", **x})
+
+    n_life = sum(1 for x in items if x["topic"] == "生活")
+    n_auto = sum(1 for x in items if x["topic"] == "汽车")
+
+    if len(items) < 4:
+        log(f"!! 只凑到 {len(items)} 条（生活 {n_life} / 汽车 {n_auto}），保留旧文件不动。")
+        return 1
+
+    payload = {
+        "week": week,
+        "generatedAt": int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000),
+        "feedsOk": ok_feeds,
+        "items": items,
+    }
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    log(f"✓ 写入 {OUT}（{len(items)} 条：生活 {n_life} / 汽车 {n_auto}；{ok_feeds}/{len(FEEDS)} 个源可用）")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
