@@ -1,11 +1,41 @@
 {
   "date": "2026-11-21",
-  "generatedAt": 1795219185703,
+  "generatedAt": 1795268204352,
   "source": "live",
-  "feedsOk": 2,
+  "feedsOk": 4,
   "cards": [
     {
       "id": "N-2026-11-21-0",
+      "topic": "生活",
+      "source": "Tagesschau（德国电视一台）",
+      "title": "Bilger fordert Bekenntnis der Autoindustrie zu Deutschland",
+      "text": "Bilger fordert Bekenntnis der Autoindustrie zu Deutschland",
+      "link": "https://www.tagesschau.de/inland/bilger-fordert-bekenntnis-der-autohersteller-zu-deutschland-100.html",
+      "date": "Sat, 21 Nov 2026 12:19:36 +0100",
+      "isNews": true
+    },
+    {
+      "id": "N-2026-11-21-1",
+      "topic": "生活",
+      "source": "Deutsche Welle 德语新闻",
+      "title": "Können sich die deutschen Automobilbauer noch erholen?",
+      "text": "Können sich die deutschen Automobilbauer noch erholen?",
+      "link": "https://www.dw.com/de/können-sich-die-deutschen-automobilbauer-noch-erholen/a-80003359?maca=de-rss-de-all-1119-rdf",
+      "date": "2026-11-20T15:13:00Z",
+      "isNews": true
+    },
+    {
+      "id": "N-2026-11-21-2",
+      "topic": "生活",
+      "source": "Deutsche Welle 德语新闻",
+      "title": "GTA-Release: Warum \"Grand Theft Auto VI\" mehr als nur ein Spiel ist",
+      "text": "GTA-Release: Warum \"Grand Theft Auto VI\" mehr als nur ein Spiel ist",
+      "link": "https://www.dw.com/de/gta-release-warum-grand-theft-auto-vi-mehr-als-nur-ein-spiel-ist/a-79933772?maca=de-rss-de-all-1119-rdf",
+      "date": "2026-11-17T07:37:00Z",
+      "isNews": true
+    },
+    {
+      "id": "N-2026-11-21-3",
       "topic": "汽车",
       "source": "auto motor und sport",
       "title": "SO TESTET DIE INDUSTRIE: So arbeitet die Autopflegemittelbranche",
@@ -15,33 +45,13 @@
       "isNews": true
     },
     {
-      "id": "N-2026-11-21-1",
+      "id": "N-2026-11-21-4",
       "topic": "汽车",
       "source": "auto motor und sport",
       "title": "Moove (164) - Felix Blum, EV Pay: „Wir machen Schnellladen für 30 Cent möglich!“",
       "text": "Moove (164) - Felix Blum, EV Pay: „Wir machen Schnellladen für 30 Cent möglich!“",
       "link": "https://www.auto-motor-und-sport.de/podcast/felix-blum-ev-pay-schnellladen-fuer-30-cent-mit-kreditkarte/",
       "date": "Sat, 14 Sep 2024 16:36:00 +0200",
-      "isNews": true
-    },
-    {
-      "id": "N-2026-11-21-2",
-      "topic": "汽车",
-      "source": "ZEIT Mobilität",
-      "title": "Autoindustrie: Irgendwas machen sie richtig in Frankreich",
-      "text": "Autoindustrie: Irgendwas machen sie richtig in Frankreich",
-      "link": "https://www.zeit.de/2026/50/renault-autoindustrie-elektromobilitaet-produktion-francois-provost",
-      "date": "Thu, 19 Nov 2026 10:04:03 -0000",
-      "isNews": true
-    },
-    {
-      "id": "N-2026-11-21-3",
-      "topic": "汽车",
-      "source": "ZEIT Mobilität",
-      "title": "Nürnberg Hauptbahnhof: Bahnverkehr rund um Nürnberg wegen Störung vorübergehend gestoppt",
-      "text": "Nürnberg Hauptbahnhof: Bahnverkehr rund um Nürnberg wegen Störung vorübergehend gestoppt",
-      "link": "https://www.zeit.de/mobilitaet/2026-11/nuernberg-hauptbahnhof-stoerung-gsm-r-zugfunk-bahn",
-      "date": "Wed, 18 Nov 2026 20:15:52 -0000",
       "isNews": true
     }
   ]
