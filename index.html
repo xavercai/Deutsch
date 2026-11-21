@@ -2978,6 +2978,10 @@ const AudioGate = {
 
   /* 必须在用户手势的同步执行路径里调用 */
   arm(){
+    // 离线语音包 / 托管音频是「直接给 URL」播放，在手势内同步调用 play() 本来就不需要预解锁；
+    // 而且在这里改同一个 <audio> 的 src，会把紧接着的真实播放打断（iOS 上表现为完全没声）。
+    // 只有云 TTS / 本地神经语音这种「先异步取音频再播」的引擎才需要这个预解锁。
+    if (typeof DB !== "undefined" && DB.settings && DB.settings.engine === "embedded") return;
     if (this.unlocked) return;
     if (this.tried > 6) return;
     this.tried++;
@@ -2989,8 +2993,7 @@ const AudioGate = {
       const p = el.play();
       const done = () => {
         this.unlocked = true;
-        try { el.pause(); el.removeAttribute("src"); el.load(); } catch(e){}
-        el.volume = 1;
+        el.volume = 1;   // 不再 pause / 清空 src：那会打断紧随其后的真实播放
       };
       if (p && p.then) p.then(done).catch(() => {});
       else done();
@@ -3435,6 +3438,8 @@ const EmbeddedTTS = {
     return { uri: bestUri, base: base > 0 ? base : 1 };
   },
 
+  lastError: "",
+
   play(text, opts = {}){
     return new Promise(async resolve => {
       const rec = this.map() && this.map()[text];
@@ -3443,11 +3448,10 @@ const EmbeddedTTS = {
       const picked = this._pick(rec, rate);
       if (!picked.uri) { opts.onEnd && opts.onEnd(); return resolve({ done:false, error:"no-embedded" }); }
       this.stop();
-      const a = AudioGate.ensure();       // 复用已解锁的元素，iOS 才肯出声
+      const a = AudioGate.ensure();
       this.cur = a;
       const pb = Math.max(0.1, Math.min(4, rate / picked.base));
-      // 注意：给 a.src 赋值会触发 load()，把 playbackRate 重置为 1，
-      // 所以必须在 src 设置之后再应用语速（onloadedmetadata / onplay 里各设一次）。
+      // 给 a.src 赋值会触发 load() 并把 playbackRate 重置为 1，所以每次都要重设语速。
       const applyRate = () => {
         a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
         try { a.playbackRate = pb; } catch(e){}
@@ -3458,14 +3462,38 @@ const EmbeddedTTS = {
         if (a.duration && opts.onWord) opts.onWord(Math.round(text.length * a.currentTime / a.duration));
       };
       a.onended = () => { TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:true }); };
-      a.onerror = () => { TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:false, error:"decode" }); };
-      try { await AudioGate.play(picked.uri); applyRate(); }
-      catch(e) {
-        TTS.speaking = false;
-        TTS.onError && TTS.onError(e);
-        opts.onError && opts.onError(e);
-        opts.onEnd && opts.onEnd();
-        resolve({ done:false, error:e.message });
+      a.onerror = () => {
+        const code = a.error ? a.error.code : 0;
+        this.lastError = "audio-error code=" + code;
+        TTS.speaking = false; opts.onEnd && opts.onEnd(); resolve({ done:false, error:"decode " + code });
+      };
+      const start = () => { a.volume = 1; return a.play(); };
+      try {
+        // 1) 直接给 URL：在手势内同步调用 play()，iOS 最认这条路
+        a.src = picked.uri;
+        await start();
+        applyRate();
+        this.lastError = "";
+      } catch(e1) {
+        // 2) 兜底：取回后按标准 audio/mpeg 重建 blob 再播。
+        //    某些静态托管把 .mp3 标成非标准的 audio/mp3，iOS 会拒播。
+        try {
+          const r = await fetch(picked.uri, { cache:"force-cache" });
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const blob = await r.blob();
+          a.src = URL.createObjectURL(new Blob([blob], { type:"audio/mpeg" }));
+          await start();
+          applyRate();
+          this.lastError = "已用 blob 兜底播放成功（原 MIME 可能不对）";
+        } catch(e2) {
+          const msg = String((e2 && e2.name ? e2.name + ": " : "") + (e2 && e2.message || e2));
+          this.lastError = "播放失败 " + msg;
+          TTS.speaking = false;
+          TTS.onError && TTS.onError(e2);
+          opts.onError && opts.onError(e2);
+          opts.onEnd && opts.onEnd();
+          resolve({ done:false, error: msg });
+        }
       }
     });
   },
@@ -5122,7 +5150,15 @@ const App = {
     document.getElementById("voiceSelect").addEventListener("change", e => { s.voiceName = e.target.value; App.applyVoice(); DB.save(); });
     document.getElementById("pitchRange").addEventListener("input", e => { s.pitch = +e.target.value; document.getElementById("pitchVal").textContent = (+e.target.value).toFixed(2); DB.save(); });
     document.getElementById("rateBias").addEventListener("input", e => { s.rateBias = +e.target.value; document.getElementById("rateBiasVal").textContent = (+e.target.value).toFixed(2); DB.save(); });
-    document.getElementById("btnVoiceTest").onclick = () => TTS.speak("Guten Morgen, ich fahre mit dem Auto zur Arbeit.", {rate:.8});
+    document.getElementById("btnVoiceTest").onclick = () => {
+      // 离线语音包只覆盖内置语料，用固定测试句会永远“没有音频”；这里改取包内真实句子。
+      let text = "Guten Morgen, ich fahre mit dem Auto zur Arbeit.";
+      if (DB.settings.engine === "embedded" && typeof EmbeddedTTS !== "undefined" && EmbeddedTTS.available()) {
+        const keys = Object.keys(EmbeddedTTS.map() || {});
+        if (keys.length) text = keys[0];
+      }
+      TTS.speak(text, {rate:.8});
+    };
     document.getElementById("btnVoiceScan").onclick = async () => { await TTS.scan(); this.renderSettings(); this.applyVoice(); this.toast("已重新扫描系统语音"); };
     document.getElementById("dailyCount").addEventListener("input", e => { s.dailyCount = +e.target.value; document.getElementById("dailyCountVal").textContent = e.target.value; DB.save(); });
     document.getElementById("dailyCount").addEventListener("change", () => this.loadToday(false));
@@ -5355,9 +5391,11 @@ const App = {
     document.getElementById("cloudBox").classList.toggle("on", eng === "cloud");
     document.getElementById("neuralBox").classList.toggle("on", eng === "local-neural");
     document.getElementById("embeddedBox").classList.toggle("on", eng === "embedded");
-    document.getElementById("embeddedHint").innerHTML = EmbeddedTTS.available()
-      ? `✓ 已内嵌离线语音包：<b>${EmbeddedTTS.count()}</b> 条 Conrad 语音（内置语料的整句与词块）。手机不联网、不开电脑即可播放。`
-      : `<span style="color:#f0c07a">当前文件不含离线语音包。手机版请在电脑上运行 <code>deutsch-news-coach-src\\build_phone_edition.py</code> 生成。</span>`;
+    const embErr = (typeof EmbeddedTTS !== "undefined" && EmbeddedTTS.lastError) ? EmbeddedTTS.lastError : "";
+    document.getElementById("embeddedHint").innerHTML = (EmbeddedTTS.available()
+      ? '✓ 已内嵌离线语音包：<b>' + EmbeddedTTS.count() + '</b> 条 Conrad 语音（内置语料的整句与词块）。手机不联网、不开电脑即可播放。'
+      : '<span style="color:#f0c07a">当前文件不含离线语音包。手机版请在电脑上运行 <code>deutsch-news-coach-src\\build_phone_edition.py</code> 生成。</span>')
+      + (embErr ? '<br><span style="color:#f0c07a">上次播放错误：<code>' + escapeHtml(embErr) + '</code></span>' : '');
     this.renderCloudFields();
     this.renderNeuralFields();
     document.getElementById("pitchVal").textContent = (+s.pitch).toFixed(2);
@@ -5402,6 +5440,10 @@ const App = {
     } else if (DB.settings.engine === "cloud") {
       const ok = CloudTTS.available();
       lbl.textContent = "云 TTS · " + CloudTTS.describe();
+      dot.className = "dot " + (ok ? "on" : "off");
+    } else if (DB.settings.engine === "embedded") {
+      const ok = (typeof EmbeddedTTS !== "undefined") && EmbeddedTTS.available();
+      lbl.textContent = ok ? ("离线语音包 · " + EmbeddedTTS.count() + " 条 Conrad 语音") : "离线语音包（未载入）";
       dot.className = "dot " + (ok ? "on" : "off");
     } else if (TTS.chosen) {
       const de = /^de/i.test(TTS.chosen.lang || "");
