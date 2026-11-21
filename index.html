@@ -3389,14 +3389,34 @@ const LocalTTS = {
    ===================================================================== */
 
 const EmbeddedTTS = {
-  _map: null, cur: null,
+  cur: null, _hosted: null, _loaded: false,
 
+  /* 语音表有两个来源：
+     1) window.EMBED_AUDIO —— 手机版把语料音频以 data URI 内嵌进 HTML；
+     2) news/audio.json   —— 在线版由服务器 / GitHub Actions 预合成，同源读取。
+     键都是文本，值形如 "data:..." 或 {"0":"news/audio/xx.mp3"}。 */
   map(){
-    if (this._map) return this._map;
     const raw = window.EMBED_AUDIO;
-    this._map = (raw && typeof raw === "object") ? raw : null;
-    return this._map;
+    if (raw && typeof raw === "object" && Object.keys(raw).length) return raw;
+    if (this._hosted && typeof this._hosted === "object" && Object.keys(this._hosted).length) return this._hosted;
+    return null;
   },
+
+  /* 尝试加载同源预合成音频清单；失败不影响其它引擎（本地 file:// 会直接跳过）。 */
+  async load(){
+    if (this._loaded) return this.available();
+    this._loaded = true;
+    if (window.EMBED_AUDIO && typeof window.EMBED_AUDIO === "object" && Object.keys(window.EMBED_AUDIO).length) return true;
+    try {
+      const r = await fetch("news/audio.json", { cache:"no-cache" });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && typeof j === "object" && Object.keys(j).length) this._hosted = j;
+      }
+    } catch(e) { /* 未生成或跨域受限，静默忽略 */ }
+    return this.available();
+  },
+
   available(){ return !!this.map(); },
   count(){ const m = this.map(); return m ? Object.keys(m).length : 0; },
   has(text){ const m = this.map(); return !!(m && text && m[text]); },
@@ -4421,11 +4441,12 @@ const App = {
     TTS.onBlocked = () => this.updateVoiceState(true);
     TTS.onError = (e) => this.toast("语音合成失败：" + (e && e.message ? e.message : e), 5000);
     await LocalTTS.detect();
+    await EmbeddedTTS.load();
     if (EmbeddedTTS.available() && !DB.settings.engineExplicit) { DB.settings.engine = "embedded"; DB.save(); }
     else if (LocalTTS.available() && !DB.settings.engineExplicit) { DB.settings.engine = "local-neural"; DB.save(); }
     this.renderSettings();
     this.applyVoice();
-    if (DB.settings.engine === "embedded" && EmbeddedTTS.available()) this.toast("已启用离线语音包（" + EmbeddedTTS.count() + " 条 Conrad 语音）", 3600);
+    if (DB.settings.engine === "embedded" && EmbeddedTTS.available()) this.toast("已启用 Conrad 预合成语音（" + EmbeddedTTS.count() + " 条）", 3600);
     else if (LocalTTS.available()) this.toast("已连接本地神经语音：" + LocalTTS.voiceLabel(), 3800);
     const loading = this.loadToday(false);   // 同步部分先渲染，再等新闻
     Teacher.startDay();
