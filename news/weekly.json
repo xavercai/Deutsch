@@ -1,12 +1,17 @@
 {
   "week": "2026-W47",
-  "generatedAt": 1795301535181,
+  "gen": 2,
+  "generatedAt": 1795312540271,
   "feedsOk": 4,
   "items": [
     {
       "id": "W-2026-W47-生0",
       "topic": "生活",
-      "text": "EU und Indonesien unterzeichnen Freihandelsabkommen",
+      "text": "Davon könnte auch die Autobranche profitieren.",
+      "chunks": [
+        "Davon könnte auch",
+        "die Autobranche profitieren."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/wirtschaft/weltwirtschaft/eu-indonesien-handelsabkommen-102.html",
       "title": "EU und Indonesien unterzeichnen Freihandelsabkommen"
@@ -14,95 +19,168 @@
     {
       "id": "W-2026-W47-生1",
       "topic": "生活",
-      "text": "Niederlande: Handfester Protest gegen PFAS-Verseuchung",
-      "source": "Tagesschau（德国电视一台）",
-      "link": "https://www.tagesschau.de/ausland/europa/niederlande-protest-gegen-pfas-100.html",
-      "title": "Niederlande: Handfester Protest gegen PFAS-Verseuchung"
-    },
-    {
-      "id": "W-2026-W47-生2",
-      "topic": "生活",
-      "text": "Riemannsche Vermutung: Mathe-Jahrhundertproblem mit KI gelöst?",
-      "source": "Tagesschau（德国电视一台）",
-      "link": "https://www.tagesschau.de/wissen/forschung/anthropic-riemannsche-vermutung-loesung-100.html",
-      "title": "Riemannsche Vermutung: Mathe-Jahrhundertproblem mit KI gelöst?"
-    },
-    {
-      "id": "W-2026-W47-生3",
-      "topic": "生活",
-      "text": "Ministerium will Autobahntankstellen vom Spritpreisdeckel ausnehmen",
+      "text": "Ab Januar soll der Preisdeckel für Benzin und Diesel gelten.",
+      "chunks": [
+        "Ab Januar soll",
+        "der Preisdeckel",
+        "für Benzin und",
+        "Diesel gelten."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/inland/spritpreis-autobahntankstellen-ausnahme-100.html",
       "title": "Ministerium will Autobahntankstellen vom Spritpreisdeckel ausnehmen"
     },
     {
-      "id": "W-2026-W47-生4",
+      "id": "W-2026-W47-生2",
       "topic": "生活",
-      "text": "Mexiko nimmt einen der meistgesuchten Drogenbosse fest",
+      "text": "Die USA fordern von Mexiko schon länger ein hartes Vorgehen gegen Kartelle.",
+      "chunks": [
+        "Die USA fordern",
+        "von Mexiko schon",
+        "länger ein hartes",
+        "Vorgehen gegen Kartelle."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/ausland/amerika/mexiko-drogenkartell-chef-festnahme-100.html",
       "title": "Mexiko nimmt einen der meistgesuchten Drogenbosse fest"
     },
     {
-      "id": "W-2026-W47-生5",
+      "id": "W-2026-W47-生3",
       "topic": "生活",
-      "text": "Finnland meldet Drohnenangriff auf russischen Frachter in der Ostsee",
+      "text": "Es brach ein Feuer aus, zur Besatzung gibt es widersprüchliche Angaben.",
+      "chunks": [
+        "Es brach ein",
+        "Feuer aus,",
+        "zur Besatzung gibt",
+        "es widersprüchliche Angaben."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/ausland/europa/finnland-ostsee-drohnenangriff-russland-frachter-100.html",
       "title": "Finnland meldet Drohnenangriff auf russischen Frachter in der Ostsee"
     },
     {
-      "id": "W-2026-W47-生6",
+      "id": "W-2026-W47-生4",
       "topic": "生活",
-      "text": "\"Costa Concordia\"-Kapitän Schettino auf Bewährung aus Haft entlassen",
+      "text": "Nun ist der ehemalige Kapitän des Schiffes aus dem Gefängnis entlassen worden.",
+      "chunks": [
+        "Nun ist der",
+        "ehemalige Kapitän des",
+        "Schiffes aus",
+        "dem Gefängnis entlassen",
+        "worden."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/ausland/europa/costa-concordia-kapitaen-aus-haft-entlassen-100.html",
       "title": "\"Costa Concordia\"-Kapitän Schettino auf Bewährung aus Haft entlassen"
     },
     {
-      "id": "W-2026-W47-生7",
+      "id": "W-2026-W47-生5",
       "topic": "生活",
-      "text": "Italiens Ex-Polizeichef De Gennaro nimmt sich das Leben",
+      "text": "Kurz vor einer Gerichtsanhörung tötete er sich selbst.",
+      "chunks": [
+        "Kurz vor einer",
+        "Gerichtsanhörung tötete",
+        "er sich selbst."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/ausland/europa/italien-polizeichef-de-gennaro-tot-100.html",
       "title": "Italiens Ex-Polizeichef De Gennaro nimmt sich das Leben"
     },
     {
-      "id": "W-2026-W47-生8",
+      "id": "W-2026-W47-生6",
       "topic": "生活",
-      "text": "Nach Kühnes Tod: Kontinuität und Aufarbeitung bei Kühne+Nagel",
+      "text": "Sein Umgang mit der Vergangenheit seines Imperiums war umstritten.",
+      "chunks": [
+        "Sein Umgang",
+        "mit der Vergangenheit",
+        "seines Imperiums war",
+        "umstritten."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/wirtschaft/unternehmen/klaus-michael-kuehne-unternehmer-vergangenheit-schindellegi-schweiz-100.html",
       "title": "Nach Kühnes Tod: Kontinuität und Aufarbeitung bei Kühne+Nagel"
     },
     {
-      "id": "W-2026-W47-生9",
+      "id": "W-2026-W47-生7",
       "topic": "生活",
-      "text": "Hausärzte beklagen Mangel an Grippe-Impfstoff",
+      "text": "Die Apotheker sehen das weniger dramatisch.",
+      "chunks": [
+        "Die Apotheker sehen",
+        "das weniger dramatisch."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/inland/gesellschaft/grippe-impfstoff-hausaerzte-100.html",
       "title": "Hausärzte beklagen Mangel an Grippe-Impfstoff"
     },
     {
-      "id": "W-2026-W47-生10",
+      "id": "W-2026-W47-生8",
       "topic": "生活",
-      "text": "Bilger fordert Bekenntnis der Autoindustrie zu Deutschland",
+      "text": "Die EU könnte Autokonzernen erlauben, auch nach 2035 neue Verbrenner und Hybride zu verkaufen.",
+      "chunks": [
+        "Die EU könnte",
+        "Autokonzernen erlauben,",
+        "auch nach 2035",
+        "neue Verbrenner und",
+        "Hybride zu verkaufen."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/inland/bilger-fordert-bekenntnis-der-autohersteller-zu-deutschland-100.html",
       "title": "Bilger fordert Bekenntnis der Autoindustrie zu Deutschland"
     },
     {
-      "id": "W-2026-W47-生11",
+      "id": "W-2026-W47-生9",
       "topic": "生活",
-      "text": "\"Altersvorsorgedepot für nahezu alle Riester-Sparer interessant\"",
+      "text": "Die Bundesregierung stellt die Altersvorsorge ab dem kommenden Jahr neu auf.",
+      "chunks": [
+        "Die Bundesregierung stellt",
+        "die Altersvorsorge ab",
+        "dem kommenden Jahr",
+        "neu auf."
+      ],
       "source": "Tagesschau（德国电视一台）",
       "link": "https://www.tagesschau.de/wirtschaft/verbraucher/altersvorsorgedepot-tipps-riester-100.html",
       "title": "\"Altersvorsorgedepot für nahezu alle Riester-Sparer interessant\""
     },
     {
+      "id": "W-2026-W47-生10",
+      "topic": "生活",
+      "text": "Über Schäden oder Opfer ist bislang nichts bekannt.",
+      "chunks": [
+        "Über Schäden oder",
+        "Opfer ist bislang",
+        "nichts bekannt."
+      ],
+      "source": "Tagesschau（德国电视一台）",
+      "link": "https://www.tagesschau.de/ausland/amerika/peru-erdbeben-102.html",
+      "title": "Erdbeben erschüttert Perus Andenregion"
+    },
+    {
+      "id": "W-2026-W47-生11",
+      "topic": "生活",
+      "text": "Weil sich die Lage verschlimmert hat, reagieren die Behörden mit strengeren Regeln.",
+      "chunks": [
+        "Weil sich",
+        "die Lage verschlimmert",
+        "hat,",
+        "reagieren",
+        "die Behörden",
+        "mit strengeren Regeln."
+      ],
+      "source": "Tagesschau（德国电视一台）",
+      "link": "https://www.tagesschau.de/ausland/afrika/wassermangel-suedafrika-100.html",
+      "title": "Südafrikas vermeidbare Wasserkrise"
+    },
+    {
       "id": "W-2026-W47-汽0",
       "topic": "汽车",
-      "text": "SO TESTET DIE INDUSTRIE: So arbeitet die Autopflegemittelbranche",
+      "text": "Dennoch sind sich Unternehmen und Verbände einig, dass es gewisse Spielregeln braucht.",
+      "chunks": [
+        "Dennoch sind sich",
+        "Unternehmen und Verbände",
+        "einig,",
+        "dass es gewisse",
+        "Spielregeln braucht."
+      ],
       "source": "auto motor und sport",
       "link": "https://www.auto-motor-und-sport.de/news/so-testet-die-industrie/",
       "title": "SO TESTET DIE INDUSTRIE: So arbeitet die Autopflegemittelbranche"
@@ -110,7 +188,13 @@
     {
       "id": "W-2026-W47-汽1",
       "topic": "汽车",
-      "text": "So retten Sie Leben: Erste Hilfe – aber richtig!",
+      "text": "Bei Crashs können oft wenige Minuten darüber entscheiden, ob Unfallopfer überleben.",
+      "chunks": [
+        "Bei Crashs können",
+        "oft wenige Minuten",
+        "darüber entscheiden,",
+        "ob Unfallopfer überleben."
+      ],
       "source": "auto motor und sport",
       "link": "https://www.auto-motor-und-sport.de/verkehr/so-leisten-sie-erste-hilfe/",
       "title": "So retten Sie Leben: Erste Hilfe – aber richtig!"
@@ -118,7 +202,13 @@
     {
       "id": "W-2026-W47-汽2",
       "topic": "汽车",
-      "text": "Podcast: „ams erklärt“ (68) : Der Fall Kienle - Einzelfall oder System? Teil 2",
+      "text": "Der Fall Kienle hat die Oldtimerszene auf den Kopf gestellt.",
+      "chunks": [
+        "Der Fall Kienle",
+        "hat die Oldtimerszene",
+        "auf den Kopf",
+        "gestellt."
+      ],
       "source": "auto motor und sport",
       "link": "https://www.auto-motor-und-sport.de/podcast/ams-erklaert-klaus-kienle-mercedes-300-sl-betrug-oldtimerszene-betroffen/",
       "title": "Podcast: „ams erklärt“ (68) : Der Fall Kienle - Einzelfall oder System? Teil 2"
@@ -126,74 +216,127 @@
     {
       "id": "W-2026-W47-汽3",
       "topic": "汽车",
-      "text": "Podcast: „ams erklärt“ (67) : Der Fall Kienle - Einzelfall oder System? Teil 1",
-      "source": "auto motor und sport",
-      "link": "https://www.auto-motor-und-sport.de/podcast/ams-erklaert-klaus-kienle-mercedes-300-sl-oldtimer-betrug/",
-      "title": "Podcast: „ams erklärt“ (67) : Der Fall Kienle - Einzelfall oder System? Teil 1"
-    },
-    {
-      "id": "W-2026-W47-汽4",
-      "topic": "汽车",
-      "text": "Moove (168) - Karl-Thomas Neumann, Ex-Opel-Chef: „Wo bleibt die Mobilitäts-App für Europa?“",
-      "source": "auto motor und sport",
-      "link": "https://www.auto-motor-und-sport.de/podcast/karl-thomas-neumann-opel-europa-batteriestrategie-mobilitaets-app/",
-      "title": "Moove (168) - Karl-Thomas Neumann, Ex-Opel-Chef: „Wo bleibt die Mobilitäts-App für Europa?“"
-    },
-    {
-      "id": "W-2026-W47-汽5",
-      "topic": "汽车",
-      "text": "Moove (164) - Felix Blum, EV Pay: „Wir machen Schnellladen für 30 Cent möglich!“",
+      "text": "Auf dem Markt für Ladestrom herrscht Goldgräberstimmung.",
+      "chunks": [
+        "Auf dem Markt",
+        "für Ladestrom herrscht",
+        "Goldgräberstimmung."
+      ],
       "source": "auto motor und sport",
       "link": "https://www.auto-motor-und-sport.de/podcast/felix-blum-ev-pay-schnellladen-fuer-30-cent-mit-kreditkarte/",
       "title": "Moove (164) - Felix Blum, EV Pay: „Wir machen Schnellladen für 30 Cent möglich!“"
     },
     {
-      "id": "W-2026-W47-汽6",
+      "id": "W-2026-W47-汽4",
       "topic": "汽车",
-      "text": "Moove (163) - Sören Ziems, Elvah: Wo lädt Deutschland das E-Auto am liebsten?",
+      "text": "Der Markt der Ladesäulenbetreiber wird von einem Anbieter dominiert: der EnBW.",
+      "chunks": [
+        "Der Markt",
+        "der Ladesäulenbetreiber",
+        "wird von einem",
+        "Anbieter dominiert:",
+        "der EnBW."
+      ],
       "source": "auto motor und sport",
       "link": "https://www.auto-motor-und-sport.de/podcast/soeren-ziems-elvah-so-laden-wo-laden-die-deutschen-ihr-e-auto/",
       "title": "Moove (163) - Sören Ziems, Elvah: Wo lädt Deutschland das E-Auto am liebsten?"
     },
     {
-      "id": "W-2026-W47-汽7",
+      "id": "W-2026-W47-汽5",
       "topic": "汽车",
-      "text": "Moove (162) - Jan Richter, Gründer von Batemo: Kommt jetzt die Feststoff-Batterie fürs E-Auto?",
+      "text": "Ständig übertrumpfen sich die Batteriezellhersteller mit neuen Bestleistungen.",
+      "chunks": [
+        "Ständig übertrumpfen sich",
+        "die Batteriezellhersteller",
+        "mit neuen Bestleistungen."
+      ],
       "source": "auto motor und sport",
       "link": "https://www.auto-motor-und-sport.de/podcast/jan-richter-battemo-der-perfekte-akku-fuers-elektroauto/",
       "title": "Moove (162) - Jan Richter, Gründer von Batemo: Kommt jetzt die Feststoff-Batterie fürs E-Auto?"
     },
     {
+      "id": "W-2026-W47-汽6",
+      "topic": "汽车",
+      "text": "Die Wissenschaft ist sich längst einig: Am CO₂-Sparen kommen wir nicht vorbei.",
+      "chunks": [
+        "Die Wissenschaft ist",
+        "sich längst einig:",
+        "Am CO₂-Sparen kommen",
+        "wir nicht vorbei."
+      ],
+      "source": "auto motor und sport",
+      "link": "https://www.auto-motor-und-sport.de/podcast/meike-jipp-dlr-antriebswende-hebel-fuer-klimaziele/",
+      "title": "Moove (157) – Meike Jipp, DLR Verkehr und Energie: „Antriebswende ist größter Hebel für Klimaziele“"
+    },
+    {
+      "id": "W-2026-W47-汽7",
+      "topic": "汽车",
+      "text": "Je nach Ladestrom ist das E-Autofahren auch deutlich günstiger.",
+      "chunks": [
+        "Je nach Ladestrom",
+        "ist das E-Autofahren",
+        "auch deutlich günstiger."
+      ],
+      "source": "auto motor und sport",
+      "link": "https://www.auto-motor-und-sport.de/podcast/konrad-schade-rabot-charge-ladestrom-fuers-e-auto-zum-nulltarif/",
+      "title": "Moove (155) – Konrad Schade, Rabot Charge: Ladestrom fürs E-Auto zum Nulltarif?"
+    },
+    {
       "id": "W-2026-W47-汽8",
       "topic": "汽车",
-      "text": "Moove (161) – Johanna Bronisch, UnternehmerTUM: E-Auto-Ladestrom – dreimal grüner als gedacht",
+      "text": "Er hat bei BMW und bei Mercedes das Digitale Zeitalter eingeläutet.",
+      "chunks": [
+        "Er hat bei",
+        "BMW und bei",
+        "Mercedes das Digitale",
+        "Zeitalter eingeläutet."
+      ],
       "source": "auto motor und sport",
-      "link": "https://www.auto-motor-und-sport.de/podcast/johanna-bronisch-unternehmertum-co2-bilanz-ladestrom-elektroauto/",
-      "title": "Moove (161) – Johanna Bronisch, UnternehmerTUM: E-Auto-Ladestrom – dreimal grüner als gedacht"
+      "link": "https://www.auto-motor-und-sport.de/podcast/sajjad-khan-car-it-porsche-cariad-software-komplexitat-verzoegerungen/",
+      "title": "Moove (154) – Sajjad Khan, Car-IT Vorstand Porsche: Warum setzt Porsche weiter auf Cariad?"
     },
     {
       "id": "W-2026-W47-汽9",
       "topic": "汽车",
-      "text": "Moove (160) – Mathias Pillin, CTO Bosch Mobility: Kann die Autoindustrie auch ohne KI-König Nvidia?",
+      "text": "Wenn es bei der Ladeinfrastruktur gilt, blinde Flecken zu schließen, wird es teuer.",
+      "chunks": [
+        "Wenn es bei",
+        "der Ladeinfrastruktur gilt,",
+        "blinde Flecken",
+        "zu schließen,",
+        "wird es teuer."
+      ],
       "source": "auto motor und sport",
-      "link": "https://www.auto-motor-und-sport.de/podcast/mathias-pillin-bosch-software-ki-chips-nvida/",
-      "title": "Moove (160) – Mathias Pillin, CTO Bosch Mobility: Kann die Autoindustrie auch ohne KI-König Nvidia?"
+      "link": "https://www.auto-motor-und-sport.de/podcast/alexander-sohl-me-energy-bio-sprit-etanol-ladesaeule-elektroauto-laden/",
+      "title": "Moove (152) – Alexander Sohl, Me Energy: Aus Bio-Sprit wird Strom fürs E-Auto"
     },
     {
       "id": "W-2026-W47-汽10",
       "topic": "汽车",
-      "text": "Moove (159) – Johan Rockström, Potsdam Institut PIK: Er ist Klimaforscher und Fan der Formel E",
+      "text": "Nicht nur im Rahmen der Europawahl steht die EU vor einer Richtungsentscheidung.",
+      "chunks": [
+        "Nicht nur",
+        "im Rahmen",
+        "der Europawahl steht",
+        "die EU vor",
+        "einer Richtungsentscheidung."
+      ],
       "source": "auto motor und sport",
-      "link": "https://www.auto-motor-und-sport.de/podcast/johan-rockstroem-potsdam-institut-fuer-klimafolgenforschung-keine-autoverbote-fuer-klima/",
-      "title": "Moove (159) – Johan Rockström, Potsdam Institut PIK: Er ist Klimaforscher und Fan der Formel E"
+      "link": "https://www.auto-motor-und-sport.de/podcast/jan-burgard-berylls-wieso-braucht-volkswagen-xpeng-als-partner/",
+      "title": "Moove (151) – Jan Burgard, Berylls: „Akku, Daten, Software - Europa hechelt hinterher.“"
     },
     {
       "id": "W-2026-W47-汽11",
       "topic": "汽车",
-      "text": "Moove (158) – Britta Seeger, Mercedes-Vorstand: Macht Mercedes „Electric Only“ zu „Electric Maybe“?",
-      "source": "auto motor und sport",
-      "link": "https://www.auto-motor-und-sport.de/podcast/britta-seeger-mercedes-benz-vertriebsvorstand-electric-only-electric-maybe/",
-      "title": "Moove (158) – Britta Seeger, Mercedes-Vorstand: Macht Mercedes „Electric Only“ zu „Electric Maybe“?"
+      "text": "Der neue BMW M3 beweist das Gegenteil.",
+      "chunks": [
+        "Der neue BMW",
+        "M3 beweist",
+        "das Gegenteil."
+      ],
+      "source": "ZEIT Mobilität",
+      "link": "https://www.zeit.de/mobilitaet/2026-11/bmw-m3-automodell-elektromobilitaet-test",
+      "title": "BMW M3: Das Kribbeln ist elektrisch"
     }
   ]
 }
