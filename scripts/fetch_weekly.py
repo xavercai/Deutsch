@@ -27,6 +27,10 @@ from fetch_daily import FEEDS, TZ, auto_chunks, fetch, norm, parse_items, pick_s
 ROOT = HERE.parent
 OUT = ROOT / "news" / "weekly.json"
 
+# 选句/切块算法的版本号。改了选择逻辑就 +1：
+# 这样即使还在同一周，也会重新生成一次（否则“本周已有”会把旧结果一直缓下去）。
+GEN_VERSION = 2
+
 PER_TOPIC = 12          # 每个主题最多收多少条（够一周每天一条不重复）
 MIN_LEN = 15
 MAX_LEN = 110
@@ -48,10 +52,13 @@ def main() -> int:
     if not force and OUT.exists():
         try:
             cur = json.loads(OUT.read_text(encoding="utf-8"))
-            got = len(cur.get("items") or [])
-            if cur.get("week") == week and got >= PER_TOPIC:
-                log(f"本周（{week}）语料池已有 {got} 条，跳过刷新。")
+            items = cur.get("items") or []
+            fresh = bool(items) and bool(items[0].get("chunks"))   # 旧版没有 chunks，说明是旧算法生成的
+            if (cur.get("week") == week and len(items) >= PER_TOPIC
+                    and fresh and cur.get("gen") == GEN_VERSION):
+                log(f"本周（{week}）语料池已是 v{GEN_VERSION}，{len(items)} 条，跳过刷新。")
                 return 0
+            log(f"本周语料池需要重建：week={cur.get('week')} 条数={len(items)} 含chunks={fresh} gen={cur.get('gen')}")
         except Exception:
             pass
 
@@ -104,6 +111,7 @@ def main() -> int:
 
     payload = {
         "week": week,
+        "gen": GEN_VERSION,
         "generatedAt": int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000),
         "feedsOk": ok_feeds,
         "items": items,

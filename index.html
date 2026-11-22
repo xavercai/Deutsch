@@ -4305,7 +4305,7 @@ async function loadWeeklyPool(){
         topic: (x.topic === "汽车" ? "汽车" : "生活"),
         de: x.text,
         zh: x.zh || "",
-        chunks: autoChunks(x.text).map(c => [c, ""]),
+        chunks: (Array.isArray(x.chunks) && x.chunks.length ? x.chunks : autoChunks(x.text)).map(c => [c, ""]),
         grammar: ann.patterns,
         vocab,
         qa: [],
@@ -4349,7 +4349,8 @@ async function loadDailyPreset(day){
       title: c.title || "", text: c.text,
       link: c.link || "", date: c.date || "", isNews:true,
       anno: annotate(c.text),
-      chunksAuto: autoChunks(c.text)
+      // 服务端已按同一规则切好词块；用它能保证「词块停顿」也有预合成音频
+      chunksAuto: (Array.isArray(c.chunks) && c.chunks.length) ? c.chunks.map(t => ({de:t, zh:""})) : autoChunks(c.text)
     })).filter(c => c.text);
     if (!cards.length) return null;
     return { source:"daily", cards, log:["✓ 已载入预抓取的每日素材（" + (data.date || "") + "，共 " + cards.length + " 条）"] };
