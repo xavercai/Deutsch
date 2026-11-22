@@ -307,6 +307,25 @@ def main() -> int:
             t = str(x.get("text", "")).strip()
             if t and not chunks_map.get(t) and x.get("chunks"):
                 chunks_map[t] = [str(c).strip() for c in x["chunks"] if str(c).strip()]
+
+    # 把服务端切好的词块写回 daily/weekly JSON。
+    # 前端在拿不到 news/chunks.json 时，会退回读取这两个 JSON 里的 chunks；
+    # 两边不一致时，词块文本就找不到对应音频，于是回退成系统机器音（听起来像机器人/没声）。
+    if isinstance(daily, dict) and daily.get("cards"):
+        for c in daily["cards"]:
+            t = str(c.get("text", "")).strip()
+            chs = chunks_map.get(t)
+            if t and chs:
+                c["chunks"] = chs
+        DAILY_FILE.write_text(json.dumps(daily, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    if isinstance(weekly, dict) and weekly.get("items"):
+        for x in weekly["items"]:
+            t = str(x.get("text", "")).strip()
+            chs = chunks_map.get(t)
+            if t and chs:
+                x["chunks"] = chs
+        WEEKLY_FILE.write_text(json.dumps(weekly, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+
     log(f"  词块：按真实停顿切出 {from_audio} 句 / 沿用旧结果 {from_sent} 句（共 {len(dyn_sents)} 句）")
 
     # ---- 阶段 2：动态句的词块音频 ----
