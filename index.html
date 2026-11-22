@@ -3,6 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 保险丝：脚本一旦报错，不要给用户一个白屏。直接显示可读的错误，便于反馈。 -->
+<script>
+(function(){
+  function show(msg, extra){
+    try{
+      var id = "fatalBox";
+      var d = document.getElementById(id);
+      if (!d) {
+        d = document.createElement("div"); d.id = id;
+        d.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#2a1512;color:#f3c0b6;"+
+          "border-top:1px solid #6a332c;padding:10px 14px;font:12px/1.65 -apple-system,Segoe UI,system-ui;white-space:pre-wrap";
+        document.body.appendChild(d);
+      }
+      d.textContent = "⚠ 页面脚本出错，功能可能不全。请把下面这段发给维护者：\n" + msg + (extra ? "\n" + extra : "");
+    }catch(e){}
+  }
+  window.addEventListener("error", function(ev){
+    var t = ev.target;
+    if (t && t.tagName && (t.tagName === "IMG" || t.tagName === "AUDIO" || t.tagName === "SCRIPT")) return;  // 资源加载失败不报
+    show(String(ev.message || "未知错误"), String(ev.filename || "").slice(-46) + ":" + ev.lineno);
+  }, true);
+  window.addEventListener("unhandledrejection", function(ev){
+    show("异步错误：" + String((ev.reason && ev.reason.message) || ev.reason || ""));
+  });
+})();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -664,6 +690,7 @@ body.no-voice .speedbar button{cursor:not-allowed}
     <button data-view="share">分享</button>
     <button data-view="settings">设置</button>
   </nav>
+  <div class="tiny" id="buildStamp" style="text-align:center;margin:14px 0 4px;opacity:.55"></div>
 
 </div>
 <div class="toast" id="toast"></div>
@@ -4355,6 +4382,10 @@ async function loadDailyPreset(day){
    应用层：界面装配与各视图逻辑
    ===================================================================== */
 
+/* 页面版本戳：每次交付新文件就 +1 个字母；页面底部会显示。
+   换文件后如果手机上还是旧号，说明浏览器/主屏幕图标缓存未刷新。 */
+const BUILD_STAMP = "2026-11-22c";
+
 const App = {
   lesson:null,       // {day, corpus, news, origin}
   list:[],           // 统一后的今日句子列表
@@ -4376,6 +4407,8 @@ const App = {
     this.bindBank();
     fmtHeader();
     await TTS.scan();
+    // 页面版本戳：换新文件后能在页面底部看到版本号变，方便确认手机是否已加载新版
+    this.stamp();
     // 先把离线语音包 / 每日音频清单读出来，再决定用哪个引擎。
     // 否则首次打开会先按“系统语音”判定，闪出“没有德语语音”的拦截提示，
     // 逼用户先去设置里折腾一轮。
@@ -4401,6 +4434,11 @@ const App = {
     this.renderBank();
     ShareUI.init();
     this.refreshBadges();
+  },
+
+  stamp(){
+    const el = document.getElementById("buildStamp");
+    if (el) el.textContent = "页面版本 " + BUILD_STAMP + "（换新文件后清一次缓存即可看到新版本号）";
   },
 
   cache(){
@@ -5270,7 +5308,23 @@ const App = {
   },
 
   /* ------------------------------------------------ 语音可用性状态 */
+  /* 语音自愈：当前引擎放不出声、但离线语音包可用时，直接切过去，
+     不再让用户看到“请去设置语音”的横幅（旧设置里的 engineExplicit 也一并清掉）。 */
+  healVoice(){
+    if (!TTS.blockReason()) return false;
+    if (typeof EmbeddedTTS !== "undefined" && EmbeddedTTS.available() && DB.settings.engine !== "embedded") {
+      DB.settings.engine = "embedded"; DB.settings.engineExplicit = false; DB.save();
+      this.applyVoice(); return true;
+    }
+    if (typeof LocalTTS !== "undefined" && LocalTTS.available() && DB.settings.engine !== "local-neural") {
+      DB.settings.engine = "local-neural"; DB.settings.engineExplicit = false; DB.save();
+      this.applyVoice(); return true;
+    }
+    return false;
+  },
+
   updateVoiceState(notify){
+    if (this.healVoice()) return true;
     const reason = TTS.blockReason();
     const blocked = !!reason;
     const eng = DB.settings.engine;
@@ -5495,6 +5549,10 @@ const App = {
     this.toast(`已生成 ${cards.length} 张卡片`);
   }
 };
+
+/* HTML 转义：全局公用。以前它只定义在 10-teacher.js，删掉老师模块后
+   整个页面会因为 escapeHtml 未定义而白屏 —— 必须留在一定会被构建的文件里。 */
+function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
 
 /* ---------------- 逐词渲染与高亮 ---------------- */
 function renderWordsWithOffsets(text, el){

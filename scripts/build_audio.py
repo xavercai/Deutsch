@@ -40,6 +40,16 @@ try:
     _HAS_MINIAUDIO = True
 except ImportError:
     _HAS_MINIAUDIO = False
+    # 自给自足：没装就自己装一次，省得还要改工作流文件
+    try:
+        import subprocess
+        subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--disable-pip-version-check", "miniaudio"],
+                       check=False, timeout=180)
+        import miniaudio
+        _HAS_MINIAUDIO = True
+        print("[info] 已自动安装 miniaudio", flush=True)
+    except Exception:
+        print("[info] 未安装 miniaudio（词块将改用规则切分）", flush=True)
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
