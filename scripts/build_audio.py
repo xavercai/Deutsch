@@ -53,6 +53,14 @@ def log(msg: str) -> None:
     print(msg, flush=True)
 
 
+def safe_unlink(p: pathlib.Path) -> None:
+    """删临时文件；失败不抛错（Windows 上偶发文件被占用会把整轮跑挂掉）。"""
+    try:
+        p.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def sha16(text: str) -> str:
     return hashlib.sha1((VOICE + "|" + RATE + "|" + text).encode("utf-8")).hexdigest()[:16]
 
@@ -63,25 +71,29 @@ async def synth_one(text: str, path: pathlib.Path, sem: asyncio.Semaphore, stats
             stats["skip"] += 1
             return
         tmp = path.with_name(path.name + ".part")
-        try:
-            comm = edge_tts.Communicate(text, VOICE, rate=RATE)
-            total = 0
-            with open(tmp, "wb") as fh:
-                async for chunk in comm.stream():
-                    if chunk.get("type") == "audio":
-                        fh.write(chunk["data"])
-                        total += len(chunk["data"])
-            if total < MIN_BYTES:
-                tmp.unlink(missing_ok=True)
-                stats["fail"] += 1
-                log(f"  × 空音频：{text[:40]}")
+        last: Exception | None = None
+        for attempt in range(3):
+            try:
+                comm = edge_tts.Communicate(text, VOICE, rate=RATE)
+                total = 0
+                with open(tmp, "wb") as fh:
+                    async for chunk in comm.stream():
+                        if chunk.get("type") == "audio":
+                            fh.write(chunk["data"])
+                            total += len(chunk["data"])
+                if total < MIN_BYTES:
+                    raise RuntimeError("服务端返回空音频")
+                tmp.replace(path)
+                stats["new"] += 1
                 return
-            tmp.replace(path)
-            stats["new"] += 1
-        except Exception as exc:                       # noqa: BLE001
-            tmp.unlink(missing_ok=True)
-            stats["fail"] += 1
-            log(f"  × {type(exc).__name__}: {text[:30]}…")
+            except Exception as exc:                   # noqa: BLE001
+                last = exc
+                safe_unlink(tmp)
+                await asyncio.sleep(0.8 * (attempt + 1))   # 退避重试，瞬时抽风很常见
+        stats["fail"] += 1
+        stats.setdefault("errors", []).append(f"{type(last).__name__}: {text[:24]}")
+        if stats["fail"] <= 5:
+            log(f"  × {type(last).__name__}: {text[:30]}…")
 
 
 async def synth_all(jobs: list[tuple[str, pathlib.Path]], rebuild: bool) -> dict:
@@ -111,9 +123,23 @@ def main() -> int:
     corpus = load_json(CORPUS_FILE, {})
     corpus_items = [str(x).strip() for x in (corpus.get("items") or []) if str(x).strip()]
     daily = load_json(DAILY_FILE, {})
-    news_items = [str(c.get("text", "")).strip() for c in (daily.get("cards") or []) if str(c.get("text", "")).strip()]
     weekly = load_json(WEEKLY_FILE, {})
-    weekly_items = [str(x.get("text", "")).strip() for x in (weekly.get("items") or []) if str(x.get("text", "")).strip()]
+
+    def collect(bucket: list) -> list[str]:
+        """收下每条的整句，以及它的词块 —— 词块漏合成就会回退到系统合成音（机器人声）。"""
+        out: list[str] = []
+        for x in bucket or []:
+            t = str(x.get("text", "")).strip()
+            if t:
+                out.append(t)
+            for ch in (x.get("chunks") or []):
+                ch = str(ch).strip()
+                if ch:
+                    out.append(ch)
+        return out
+
+    news_items = collect(daily.get("cards") or [])
+    weekly_items = collect(weekly.get("items") or [])
 
     log(f"=== 预合成 Conrad 语音（{VOICE} {RATE}）===")
     log(f"  内置语料：{len(corpus_items)} 条   当日新闻：{len(news_items)} 条   本周新语料：{len(weekly_items)} 条")
@@ -152,6 +178,8 @@ def main() -> int:
 
     stats = asyncio.run(synth_all(jobs, args.rebuild))
     log(f"  合成：新增 {stats['new']} / 跳过 {stats['skip']} / 失败 {stats['fail']}")
+    for e in (stats.get("errors") or [])[:3]:
+        log(f"    · {e}")
 
     # ---- 合并旧索引（保留仍在保留期内的新闻条目），并清理过期新闻音频 ----
     old_index = load_json(INDEX_FILE, {})

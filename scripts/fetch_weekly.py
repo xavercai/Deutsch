@@ -22,7 +22,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from fetch_daily import FEEDS, TZ, fetch, norm, parse_items, sentence_from  # noqa: E402
+from fetch_daily import FEEDS, TZ, auto_chunks, fetch, norm, parse_items, pick_sentence  # noqa: E402
 
 ROOT = HERE.parent
 OUT = ROOT / "news" / "weekly.json"
@@ -56,12 +56,11 @@ def main() -> int:
             pass
 
     log(f"=== 生成本周（{week}）语料池 ===")
-    buckets: dict[str, list[dict]] = {"生活": [], "汽车": []}
-    seen: set[str] = set()
+    # 先拉全部新闻，再按“正文里的完整句”筛，不够再放宽
+    raw: dict[str, list[dict]] = {"生活": [], "汽车": []}
     ok_feeds = 0
-
     for _fid, name, url, topic in FEEDS:
-        t = topic if topic in buckets else "生活"
+        t = topic if topic in raw else "生活"
         xml = fetch(url)
         if not xml:
             continue
@@ -69,18 +68,27 @@ def main() -> int:
         if items:
             ok_feeds += 1
             log(f"  ✓ {name}: {len(items)} 条")
-        for it in items:
-            if len(buckets[t]) >= PER_TOPIC * 2:
-                continue
-            body = sentence_from(it)
-            if not (MIN_LEN <= len(body) <= MAX_LEN):
-                continue
-            key = norm(body)
-            if not key or key in seen:
-                continue
-            seen.add(key)
-            buckets[t].append({"topic": t, "text": body, "source": name,
-                               "link": it.get("link", ""), "title": it.get("title", "")})
+        raw[t].extend(items)
+
+    buckets: dict[str, list[dict]] = {"生活": [], "汽车": []}
+    for min_score in (45, 35, 25):
+        buckets = {"生活": [], "汽车": []}
+        seen: set[str] = set()
+        for t in ("生活", "汽车"):
+            for it in raw[t]:
+                if len(buckets[t]) >= PER_TOPIC:
+                    break
+                body = pick_sentence(it, min_score)
+                if not body:
+                    continue
+                key = norm(body)
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                buckets[t].append({"topic": t, "text": body, "chunks": auto_chunks(body), "source": it["feed"],
+                                   "link": it.get("link", ""), "title": it.get("title", "")})
+        if sum(len(v) for v in buckets.values()) >= PER_TOPIC:
+            break
 
     items: list[dict] = []
     for t in ("生活", "汽车"):
