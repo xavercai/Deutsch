@@ -1,11 +1,28 @@
 {
   "date": "2026-11-22",
-  "generatedAt": 1795316440592,
+  "generatedAt": 1795319648033,
   "source": "live",
   "feedsOk": 4,
   "cards": [
     {
       "id": "N-2026-11-22-0",
+      "topic": "生活",
+      "source": "Tagesschau（德国电视一台）",
+      "title": "IG Metall weitet Warnstreiks in norddeutscher Metall- und Elektroindustrie aus",
+      "text": "Bundesweit hatten am Freitag Beschäftigte der Metall- und Elektroindustrie ihre Arbeit niedergelegt.",
+      "chunks": [
+        "Bundesweit hatten",
+        "am Freitag Beschäftigte",
+        "der Metall- und",
+        "Elektroindustrie",
+        "ihre Arbeit niedergelegt."
+      ],
+      "link": "https://www.tagesschau.de/wirtschaft/unternehmen/ig-metall-warnstreik-102.html",
+      "date": "Sun, 22 Nov 2026 04:50:01 +0100",
+      "isNews": true
+    },
+    {
+      "id": "N-2026-11-22-1",
       "topic": "生活",
       "source": "Tagesschau（德国电视一台）",
       "title": "Ministerium will Autobahntankstellen vom Spritpreisdeckel ausnehmen",
@@ -18,23 +35,6 @@
       ],
       "link": "https://www.tagesschau.de/inland/spritpreis-autobahntankstellen-ausnahme-100.html",
       "date": "Sat, 21 Nov 2026 16:55:59 +0100",
-      "isNews": true
-    },
-    {
-      "id": "N-2026-11-22-1",
-      "topic": "生活",
-      "source": "Tagesschau（德国电视一台）",
-      "title": "Bilger fordert Bekenntnis der Autoindustrie zu Deutschland",
-      "text": "Die EU könnte Autokonzernen erlauben, auch nach 2035 neue Verbrenner und Hybride zu verkaufen.",
-      "chunks": [
-        "Die EU könnte",
-        "Autokonzernen erlauben,",
-        "auch nach 2035",
-        "neue Verbrenner und",
-        "Hybride zu verkaufen."
-      ],
-      "link": "https://www.tagesschau.de/inland/bilger-fordert-bekenntnis-der-autohersteller-zu-deutschland-100.html",
-      "date": "Sat, 21 Nov 2026 12:19:36 +0100",
       "isNews": true
     },
     {
