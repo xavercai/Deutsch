@@ -65,10 +65,7 @@ a{color:var(--blue);text-decoration:none}
   .brand small{display:none}
   .tabs{overflow:visible}
   .tabs .tabgap{display:none}
-  .tabs .tab-minor{display:none}
-  .tabs .tab-primary{display:none}
-  .tabs .tab-primary.current{display:inline-flex}
-  .tabs.expanded .tab-primary{display:inline-flex}
+  .tabs .tab-minor{display:none}   /* 次要入口收到页底 .bottomnav */
   .bottomnav{display:flex;gap:8px;justify-content:center;margin:26px 0 4px;padding-top:14px;border-top:1px solid var(--line)}
   .bottomnav button{padding:9px 16px;border-radius:10px;background:var(--bg3);border:1px solid var(--line);color:var(--tx2);font-size:13.5px}
   .bottomnav button.active{border-color:var(--ac);color:var(--ac2);background:#f0a92c10;font-weight:600}
@@ -273,34 +270,8 @@ body.no-voice .speedbar button{cursor:not-allowed}
 
   <!-- ===================== ① 今天跟读 ===================== -->
   <section class="view active" id="view-lesson">
-    <div class="grid g-main">
-      <div>
-        <div class="sec-title">今天的 4 句话 · 先听后跟读</div>
-        <div id="lessonList"></div>
-      </div>
-
-      <aside>
-        <div class="teacher">
-          <div class="t-head">
-            <div class="avatar">👨‍🏫</div>
-            <div>
-              <div class="nm">Herr Weber</div>
-              <div class="st" id="teacherStatus">德语老师 · A1 课堂</div>
-            </div>
-            <div class="spacer" style="flex:1"></div>
-            <button class="btn sm ghost" id="btnTeacherReset" title="重新开始今天的课堂">↺</button>
-          </div>
-          <div class="t-log" id="teacherLog"></div>
-          <div class="t-input">
-            <div class="quick" id="teacherQuick"></div>
-            <div class="row">
-              <input type="text" id="teacherInput" placeholder="用德语或中文回答老师…" autocomplete="off">
-              <button class="btn pri" id="btnTeacherSend">发送</button>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
+    <div class="sec-title">今天的 4 句话 · 先听后跟读</div>
+    <div id="lessonList"></div>
   </section>
 
   <!-- ===================== ② 跟读矫正 ===================== -->
@@ -677,11 +648,10 @@ body.no-voice .speedbar button{cursor:not-allowed}
         <div class="card">
           <h3>❓ 使用说明</h3>
           <div class="tiny" style="line-height:1.8">
-            1. 「今日课堂」里点句子的速度档位，先听慢速，再逐档加快。<br>
-            2. 切到「跟读矫正」，按 ⏺ 录音并整句读完，停止后自动评分与纠音。<br>
-            3. 右侧 Herr Weber 会像课堂一样提问，可直接用德语或中文回答。<br>
-            4. 学完点「把今天的新句子加入复习」，之后按遗忘曲线在「复习计划」里复习。<br>
-            5. 语音识别需要 Chrome / Edge，且首次使用要允许麦克风。
+            1. 「① 今天跟读」里点句子下面的「▶ 播放」「◫ 词块停顿」「🔁 跟读循环」，按五个速度档从慢到快练。<br>
+            2. 想纠音就去「🎙 去录音跟读」，按 ⏺ 录音并整句读完，停止后自动评分与纠音。<br>
+            3. 每天的 4 句会自动排进「② 复习」，按遗忘曲线提醒你回来看。<br>
+            4. 语音识别需要 Chrome / Edge，且首次使用要允许麦克风。
           </div>
         </div>
       </div>
@@ -4286,6 +4256,28 @@ function pickDailyCorpus(n = 4, dayKey = todayKey()){
    ===================================================================== */
 let WEEKLY_POOL = null;
 
+/* 服务端按“整句朗读里的真实停顿”切好的词块（news/chunks.json）。
+   它比前端按词数硬切自然得多，优先级也最高。 */
+let REMOTE_CHUNKS = null;
+
+async function loadRemoteChunks(){
+  try {
+    const r = await fetch("news/chunks.json", { cache:"no-cache" });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j && j.map && typeof j.map === "object") REMOTE_CHUNKS = j.map;
+  } catch(e) { /* 没有也不影响 */ }
+  return REMOTE_CHUNKS;
+}
+
+/* 词块来源优先级：服务端真实停顿切分 > JSON 里带的 > 前端现场切 */
+function chunkListFor(text, provided){
+  const rc = REMOTE_CHUNKS && REMOTE_CHUNKS[text];
+  if (Array.isArray(rc) && rc.length) return rc;
+  if (Array.isArray(provided) && provided.length) return provided;
+  return autoChunks(text);
+}
+
 async function loadWeeklyPool(){
   try {
     const r = await fetch("news/weekly.json", { cache:"no-cache" });
@@ -4305,10 +4297,11 @@ async function loadWeeklyPool(){
         topic: (x.topic === "汽车" ? "汽车" : "生活"),
         de: x.text,
         zh: x.zh || "",
-        chunks: (Array.isArray(x.chunks) && x.chunks.length ? x.chunks : autoChunks(x.text)).map(c => [c, ""]),
+        chunks: chunkListFor(x.text, x.chunks).map(c => [typeof c === "string" ? c : c.de, ""]),
         grammar: ann.patterns,
         vocab,
         qa: [],
+        anno: ann,          // 供卡片里的逐词中文注释使用（与内置语料同一套解释口径）
         weekly: true,
         src: x.source || "本周新语料"
       };
@@ -4349,301 +4342,14 @@ async function loadDailyPreset(day){
       title: c.title || "", text: c.text,
       link: c.link || "", date: c.date || "", isNews:true,
       anno: annotate(c.text),
-      // 服务端已按同一规则切好词块；用它能保证「词块停顿」也有预合成音频
-      chunksAuto: (Array.isArray(c.chunks) && c.chunks.length) ? c.chunks.map(t => ({de:t, zh:""})) : autoChunks(c.text)
+      zh: c.zh || "",
+      // 词块：优先用服务端按真实停顿切好的（保证与已合成音频一一对应）
+      chunksAuto: chunkListFor(c.text, c.chunks).map(t => typeof t === "string" ? {de:t, zh:""} : t)
     })).filter(c => c.text);
     if (!cards.length) return null;
     return { source:"daily", cards, log:["✓ 已载入预抓取的每日素材（" + (data.date || "") + "，共 " + cards.length + " 条）"] };
   } catch(e) { return null; }
 }
-
-/* =====================================================================
-   课堂互动层：Herr Weber 的脚本化教学回合 + 关键词驱动的自由问答
-   ===================================================================== */
-
-const Teacher = {
-  ctx:null,                // {play, openShadow, addReview, getSentence}
-  logEl:null, inputEl:null,
-  sent:null,               // 当前句子对象
-  steps:[], step:0, waiting:null,
-
-  init(ctx){
-    this.ctx = ctx;
-    this.logEl = document.getElementById("teacherLog");
-    this.inputEl = document.getElementById("teacherInput");
-    document.getElementById("btnTeacherSend").onclick = () => this.fromInput();
-    this.inputEl.addEventListener("keydown", e => { if (e.key === "Enter") this.fromInput(); });
-    document.getElementById("btnTeacherReset").onclick = () => { this.logEl.innerHTML = ""; this.startDay(); };
-    const quick = document.getElementById("teacherQuick");
-    const chips = [
-      ["🔁 再读一次", () => this.act("repeat")],
-      ["🐢 慢一点",   () => this.act("slower")],
-      ["🐇 快一点",   () => this.act("faster")],
-      ["🇨🇳 翻译",    () => this.act("translate")],
-      ["📘 语法",     () => this.act("grammar")],
-      ["🎙 去跟读",   () => this.ctx.openShadow()],
-      ["➡️ 下一步",   () => this.act("next")]
-    ];
-    quick.innerHTML = chips.map((c,i) => `<button data-i="${i}">${c[0]}</button>`).join("");
-    quick.querySelectorAll("button").forEach(b => b.onclick = () => chips[+b.dataset.i][1]());
-  },
-
-  /* ---------- 渲染 ---------- */
-  push(role, payload){
-    const div = document.createElement("div");
-    div.className = "msg " + role;
-    const parts = [];
-    if (payload.de) parts.push(`<div class="m-de">${payload.de}</div>`);
-    if (payload.html) parts.push(payload.html);
-    if (payload.zh) parts.push(`<div class="m-zh">${payload.zh}</div>`);
-    if (payload.tools && payload.tools.length) {
-      parts.push(`<div class="m-tools">` + payload.tools.map((t,i) =>
-        `<button class="btn sm ${t.pri ? "pri" : ""}" data-t="${i}">${t.label}</button>`).join("") + `</div>`);
-    }
-    div.innerHTML = `<div class="bub">${parts.join("")}</div>`;
-    this.logEl.appendChild(div);
-    if (payload.tools) div.querySelectorAll("[data-t]").forEach(b => b.onclick = () => payload.tools[+b.dataset.t].act());
-    this.logEl.scrollTop = this.logEl.scrollHeight;
-    return div;
-  },
-  t(p){ return this.push("t", p); },
-  s(p){ return this.push("s", p); },
-
-  /* ---------- 开场 ---------- */
-  startDay(){
-    const hour = new Date().getHours();
-    const greet = hour < 11 ? "Guten Morgen" : hour < 18 ? "Guten Tag" : "Guten Abend";
-    this.t({
-      de:`${greet}! Ich bin Herr Weber.`,
-      zh:"你好，我是 Weber 老师。今天我们用德国的新闻句子练发音和语法，从很慢到正常语速，一句一句来。",
-      tools:[{label:"开始今天第一句 ▶", pri:true, act:() => this.teach(this.ctx.getSentence(0))},
-             {label:"先复习到期卡片", act:() => App.switchView("review")}]
-    });
-  },
-
-  /* ---------- 教学回合 ---------- */
-  teach(sent){
-    if (!sent) return;
-    this.sent = sent; this.step = 0; this.waiting = null;
-    const isNews = !!sent.isNews;
-    const de = sent.de || sent.text || "";
-    const zh = sent.zh || (sent.ai && sent.ai.zh) || "";
-    this.t({
-      de: de,
-      html: isNews ? `<div class="tiny">来源：${sent.source}</div>` : `<div class="tiny">${sent.topic} · A1 跟读句</div>`,
-      zh: zh,
-      tools:[
-        {label:"🐢 很慢", act:() => this.speakAt("very-slow")},
-        {label:"🚶 慢速", act:() => this.speakAt("slow")},
-        {label:"🏃 常速", act:() => this.speakAt("normal")},
-        {label:"🎙 我要跟读", pri:true, act:() => this.ctx.openShadow(sent)}
-      ]
-    });
-    this.steps = [
-      () => this.stepListen(),
-      () => this.stepGrammar(),
-      () => this.stepVocab(),
-      () => this.stepQuestion(),
-      () => this.stepWrap()
-    ];
-  },
-
-  stepListen(){
-    this.t({ html:`先听三遍：<b>很慢 → 慢速 → 常速</b>，每一遍都跟着小声读。<br>读完按「下一步」，我来讲语法。`,
-      tools:[{label:"▶ 三档连播", pri:true, act:() => this.playLadder()},
-             {label:"下一步 →", act:() => this.next()}] });
-  },
-
-  stepGrammar(){
-    const de = this.sent.de || this.sent.text || "";
-    const gs = (this.sent.grammar || (this.sent.ai && this.sent.ai.grammar) || []);
-    let html = "";
-    if (gs.length) {
-      html = `<div style="margin:3px 0 4px"><b>语法讲解（A1 视角）</b></div><ul class="glist" style="margin:0">` +
-        gs.map(g => `<li class="gitem"><div class="g-h">${g.h}</div><div class="g-b">${g.b}</div></li>`).join("") + `</ul>`;
-    } else {
-      const a = annotate(de);
-      html = `<div style="margin:3px 0 6px"><b>这句里值得注意的结构</b></div><ul class="glist" style="margin:0">` +
-        a.patterns.slice(0,3).map(g => `<li class="gitem"><div class="g-h">${g.h}</div><div class="g-b">${g.b}</div></li>`).join("") +
-        `</ul>`;
-    }
-    this.t({ html, tools:[{label:"我懂了，讲词汇 →", pri:true, act:() => this.next()},
-                          {label:"再读一遍这句", act:() => this.act("repeat")}] });
-  },
-
-  stepVocab(){
-    const v = (this.sent.vocab || (this.sent.ai && this.sent.ai.vocab) || []);
-    let html;
-    if (v.length) {
-      html = `<div style="margin:3px 0 6px"><b>关键词汇</b></div><div class="vocab">` +
-        v.map(x => `<div class="vc"><div class="v-de">${x.de}<span class="v-pos">${x.pos || ""}</span></div>
-          <div class="v-zh">${x.zh}</div>${x.ex ? `<div class="v-ex">${x.ex}</div>` : ""}
-          <button class="btn sm" data-add="${x.de}">加入词汇复习</button></div>`).join("") + `</div>`;
-    } else {
-      const a = annotate(this.sent.de || this.sent.text || "");
-      const known = a.tokens.filter(t => t.gloss).slice(0, 8);
-      html = `<div style="margin:3px 0 6px"><b>逐词速查</b><span class="tiny">（只列词形能定的词；冠词/代词的格看句子成分，判不准则不列）</span></div><div class="vocab">` +
-        known.map(t => `<div class="vc"><div class="v-de">${t.w}</div><div class="v-zh">${t.gloss}</div>
-          <button class="btn sm" data-add="${t.lemma}">加入词汇复习</button></div>`).join("") + `</div>`;
-      if (a.unknown.length) html += `<div class="tiny" style="margin-top:6px">暂未收录：${a.unknown.slice(0,8).map(x=>x.w).join("、")}</div>`;
-    }
-    const div = this.t({ html: html, tools:[{label:"来回答一个问题 →", pri:true, act:() => this.next()}] });
-    div.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
-      this.ctx.addVocabReview(b.dataset.add, this.sent);
-      b.textContent = "✓ 已加入"; b.disabled = true;
-    });
-  },
-
-  stepQuestion(){
-    const qa = (this.sent.qa || [])[0];
-    const de = this.sent.de || this.sent.text || "";
-    if (qa) {
-      this.waiting = {expect: qa.a, kind:"answer"};
-      this.t({ de: qa.q, zh:"请用德语回答（也可以点下面的按钮看答案）。",
-        tools:[{label:"💡 看答案", act:() => this.revealAnswer(qa.a)},{label:"直接下一步 →", act:() => this.next()}] });
-    } else {
-      // 新闻句没有预设问答，改成填空：挖掉一个实词
-      const words = tokenize(de).filter(w => w.length >= 5);
-      const target = words[Math.floor(words.length / 2)] || "";
-      if (target) {
-        const blanked = de.replace(new RegExp(`\\b${target}\\b`), "＿＿＿");
-        this.waiting = {expect: target, kind:"blank"};
-        this.t({ html:`<div style="margin-bottom:4px"><b>填空：</b>下面这句少了一个词，请补上。</div>`,
-                  de: blanked, zh:"输入那个缺失的德语单词即可。",
-                  tools:[{label:"💡 看答案", act:() => this.revealAnswer(target)},{label:"直接下一步 →", act:() => this.next()}] });
-      } else this.next();
-    }
-  },
-
-  stepWrap(){
-    const de = this.sent.de || this.sent.text || "";
-    this.waiting = null;
-    this.t({ html:`这一句就到这里。建议把它加入复习，我会按遗忘曲线在 <b>10 分钟 → 1 小时 → 1 天 → 2 天 → 4 天 → 7 天</b> 这些节点提醒你回来看。`,
-      tools:[
-        {label:"➕ 加入今日复习", pri:true, act:() => { this.ctx.addReview(this.sent); this.t({zh:"已加入。到期后到「复习计划」里会出现这张卡。"}); }},
-        {label:"🎙 去跟读矫正", act:() => this.ctx.openShadow(this.sent)},
-        {label:"下一句 ▶", act:() => { const s = this.ctx.nextSentence(); s ? this.teach(s) : this.t({zh:"今天的句子都讲完了。可以点「复习计划」做到期卡片。"}); }}
-      ]});
-  },
-
-  revealAnswer(a){
-    this.s({ html:`<div class="tiny">参考表达</div>`, de:a });
-    this.waiting = null;
-    this.t({ html:"照着读一遍，注意重音。", tools:[{label:"下一步 →", pri:true, act:() => this.next()}] });
-  },
-
-  next(){ this.step++; const f = this.steps[this.step]; if (f) f(); },
-
-  /* ---------- 播放 ---------- */
-  async speakAt(key){
-    const sp = SPEEDS.find(s => s.k === key) || SPEEDS[2];
-    const de = (this.sent && (this.sent.de || this.sent.text)) || "";
-    if (!de) return;
-    await TTS.speak(de, {rate:sp.rate});
-  },
-  async playLadder(){
-    const de = (this.sent && (this.sent.de || this.sent.text)) || "";
-    if (!de) return;
-    for (const k of ["very-slow","slow","normal"]) {
-      await TTS.speak(de, {rate:(SPEEDS.find(s=>s.k===k)).rate});
-      await sleep(700);
-    }
-    this.t({ zh:"三遍读完了。现在轮到你了 —— 小声跟读，再大声读一遍。",
-      tools:[{label:"🎙 开始跟读", pri:true, act:() => this.ctx.openShadow(this.sent)}] });
-  },
-
-  /* ---------- 动作 ---------- */
-  act(name){
-    const de = (this.sent && (this.sent.de || this.sent.text)) || "";
-    if (name === "repeat") { this.speakAt(DB.settings.ladder === "two" ? "slow" : "slow"); return; }
-    if (name === "slower") { TTS.speak(de, {rate:0.55}); this.t({zh:"放慢到 0.55 倍。注意每个词尾的辅音都要读出来。"}); return; }
-    if (name === "faster") { TTS.speak(de, {rate:1.1}); this.t({zh:"这是德国电视新闻的播报速度。先别急，能跟上大意就行。"}); return; }
-    if (name === "translate") { this.t({ zh:(this.sent && this.sent.zh) || (this.sent && this.sent.ai && this.sent.ai.zh) || "这句是新闻原句，我按词给你解释：", html: glossTable(de) }); return; }
-    if (name === "grammar") { this.stepGrammar(); return; }
-    if (name === "next") { this.next(); return; }
-  },
-
-  /* ---------- 自由输入 ---------- */
-  fromInput(){
-    const v = this.inputEl.value.trim();
-    if (!v) return;
-    this.inputEl.value = "";
-    this.s({ html:escapeHtml(v) });
-    this.reply(v);
-  },
-
-  reply(text){
-    const low = text.toLowerCase();
-    const de = (this.sent && (this.sent.de || this.sent.text)) || "";
-
-    // 1) 正在等待答案
-    if (this.waiting) {
-      const exp = norm(this.waiting.expect);
-      const got = norm(text);
-      const d = editDist(exp, got);
-      const ok = got && (got === exp || d <= Math.max(1, Math.floor(exp.split(" ").length * 0.25)));
-      if (ok) {
-        this.waiting = null;
-        this.t({ de:"Sehr gut! Genau so sagt man das.", zh:"答得对！用词和词序都对。" });
-        setTimeout(() => this.next(), 500);
-      } else {
-        this.t({ html:`接近了，但还差一点。提示：${hintFor(this.waiting)}`,
-          tools:[{label:"💡 看答案", act:() => this.revealAnswer(this.waiting.expect)},{label:"再试一次", act:() => { this.waiting = this.waiting; }}] });
-      }
-      return;
-    }
-
-    // 2) 关键词指令
-    if (/noch ?(mal|einmal)|wieder|再读|重读|再来一遍/.test(low)) return this.act("repeat");
-    if (/langsamer|slow|慢|慢一点/.test(low)) return this.act("slower");
-    if (/schneller|快一点/.test(low)) return this.act("faster");
-    if (/übersetz|翻译|中文意思|什么意思/.test(low) && !/was heißt|was bedeutet/.test(low)) return this.act("translate");
-    if (/grammatik|语法/.test(low)) return this.stepGrammar();
-    if (/weiter|nächste|下一步|继续/.test(low)) return this.act("next");
-    if (/buchstabier|拼写|怎么拼/.test(low)) {
-      const w = tokenize(text).find(t => t.length > 2) || tokenize(de)[0] || "";
-      return this.t({ html:`拼写：<span class="mono">${w.split("").join(" - ")}</span>` });
-    }
-    if (/was heißt|was bedeutet|什么意思|怎么读|发音/.test(low)) {
-      const w = tokenize(text.replace(/was heißt|was bedeutet/ig, "")).pop() || "";
-      const l = lookup(w);
-      const tips = pronTipsFor(w, null);
-      // 功能词单看词形会讲错（第二格的 der 不是“阳性主格”）；能结合当前句子就结合
-      const ctx = contextualGlossOf(w, de);
-      const gloss = ctx || l.gloss;
-      const note = ctx ? "（按当前句子里的位置判断）" : (/^art\.|^pron\.|^konj\.|^prep\./.test(l.gloss || "") ? "（这类词的格/成分要看它所在的句子，单看词形只能列可能）" : "");
-      return this.t({ html:`<b>${w}</b>：${gloss || "我暂时没有收录这个词，可以查一下词形变化。"}${note ? `<div class="tiny">${note}</div>` : ""}`,
-        zh: tips.length ? "发音提示：" + tips[0].b : "" });
-    }
-    if (/danke|谢谢/.test(low)) return this.t({ de:"Gern! Weiter so.", zh:"不客气，继续加油。" });
-    if (/hallo|guten|你好/.test(low)) return this.t({ de:"Hallo! Bereit?", zh:"你好！准备好了就继续。" });
-
-    // 3) 把用户输入当成跟读文本，给一次发音/用词反馈
-    if (/[a-zäöüß]/i.test(text) && de) {
-      const r = Speech.score(de, text);
-      if (r.score >= 60) {
-        this.t({ de:"Gut gesprochen!", zh:`我听到的是：“${text}”，和原句吻合度约 ${r.score}%。`,
-          html: r.tips.slice(0,2).map(t => `<div class="gitem pitem"><div class="g-h">${t.h}</div><div class="g-b">${t.b}</div></div>`).join("") });
-      } else {
-        this.t({ zh:"我理解你的意思。要不要我换一种方式说？你可以直接问我某个词的意思，或者说「慢一点」「下一步」。",
-          tools:[{label:"🐢 慢一点", act:() => this.act("slower")},{label:"📘 讲解语法", act:() => this.stepGrammar()}] });
-      }
-      return;
-    }
-    this.t({ zh:"我在听。你可以：问我某个词的意思、说「慢一点」「再读一次」，或者点上面的快捷按钮。" });
-  }
-};
-
-function hintFor(w){
-  if (w.kind === "blank") return `这个词以 <b>${w.expect[0]}</b> 开头，共 ${w.expect.length} 个字母。`;
-  return `参考句以 <b>${w.expect.split(" ")[0]}</b> 开头。`;
-}
-function glossTable(de){
-  const a = annotate(de || "");
-  return `<div class="vocab">` + a.tokens.map(t =>
-    `<div class="vc"><div class="v-de">${t.w}</div><div class="v-zh">${t.gloss || "—"}</div></div>`).join("") + `</div>`;
-}
-function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
 
 /* =====================================================================
    应用层：界面装配与各视图逻辑
@@ -4682,22 +4388,14 @@ const App = {
       DB.save();
     }
     this.applyVoice();
-    Teacher.init({
-      play: (s, k) => this.playSentence(s, k),
-      openShadow: (s) => this.openShadow(s),
-      addReview: (s) => this.addReview(s),
-      addVocabReview: (w, s) => this.addVocabReview(w, s),
-      getSentence: (i) => this.list[i],
-      nextSentence: () => this.list[++this.idx]
-    });
     TTS.onBlocked = () => this.updateVoiceState(true);
     TTS.onError = (e) => this.toast("语音合成失败：" + (e && e.message ? e.message : e), 5000);
     this.renderSettings();
     this.applyVoice();
     // 首次使用不弹任何设置引导，也不强推引擎选择；能出声就直接出声。
+    await loadRemoteChunks();
     await loadWeeklyPool();
     const loading = this.loadToday(false);   // 同步部分先渲染，再等新闻
-    Teacher.startDay();
     await loading;
     this.renderReview();
     this.renderBank();
@@ -4749,11 +4447,6 @@ const App = {
     const tabs = document.getElementById("tabs");
     tabs.addEventListener("click", e => {
       const b = e.target.closest("button[data-view]"); if (!b) return;
-      // 手机端：再点一次“当前主模块”就展开/收起另外两个模块
-      if (b.classList.contains("tab-primary") && b.classList.contains("current")) {
-        tabs.classList.toggle("expanded");
-        return;
-      }
       this.switchView(b.dataset.view);
     });
     const bn = document.getElementById("bottomnav");
@@ -4761,23 +4454,12 @@ const App = {
       const b = e.target.closest("button[data-view]"); if (!b) return;
       this.switchView(b.dataset.view);
     });
-    // 点模块菜单以外的地方就收起
-    document.addEventListener("click", e => {
-      if (tabs && !tabs.contains(e.target)) tabs.classList.remove("expanded");
-    });
   },
   switchView(v){
     // 「跟读矫正」是「① 今天跟读」的展开视图，切过去时仍高亮第一个标签
     const tab = (v === "shadow") ? "lesson" : v;
     const tabs = document.getElementById("tabs");
-    if (tabs) {
-      tabs.classList.remove("expanded");
-      tabs.querySelectorAll("button").forEach(b => {
-        const on = b.dataset.view === tab;
-        b.classList.toggle("active", on);
-        if (b.classList.contains("tab-primary")) b.classList.toggle("current", on);
-      });
-    }
+    if (tabs) tabs.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.view === tab));
     const bn = document.getElementById("bottomnav");
     if (bn) bn.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.view === v));
     document.querySelectorAll(".view").forEach(s => s.classList.toggle("active", s.id === "view-" + v));
@@ -4795,6 +4477,7 @@ const App = {
     this.rebuildList();
     this.idx = 0;
     this.renderLesson();
+    this.autoScheduleToday();     // 每天的 4 句自动进入复习队列
     this.renderShadowOptions();
     this.renderPronGeneral();
     document.getElementById("todayOrigin").textContent = this.lesson.origin;
@@ -4814,6 +4497,28 @@ const App = {
     this.renderNews(news.cards || []);
     this.renderLesson();
     this.renderShadowOptions();
+  },
+
+  /* 每天的 4 句自动进入复习队列 —— 不需要用户手动点“加入复习”。
+     已存在的条目不动（否则每天重置会把间隔阶梯毁掉）。
+     新条目 due 设为“现在”，这样刚学完就能在「② 复习」里看到并自评。 */
+  autoScheduleToday(){
+    let added = 0;
+    (this.lesson && this.lesson.corpus || []).forEach(s => {
+      const n = this.asSentence(s);
+      const k = SRS.key("sentence", n.id);
+      if (!DB.items[k]) {
+        const it = SRS.introduce("sentence", n.id, {label:n.de, zh:n.zh, topic:n.topic});
+        it.due = Date.now();
+        added++;
+      }
+      // 语法点也一并入队（有的话）
+      (n.grammar || []).forEach(g => {
+        const gk = SRS.key("grammar", g.h);
+        if (!DB.items[gk]) { const git = SRS.introduce("grammar", g.h, {label:g.h, zh:"", topic:n.topic}); git.due = Date.now(); added++; }
+      });
+    });
+    if (added) { DB.save(); this.refreshBadges(); }
   },
 
   rebuildList(){
@@ -4840,9 +4545,10 @@ const App = {
   asSentence(x){
     if (x.isNews) return {
       id:x.id, topic:"新闻", isNews:true, source:x.source, link:x.link,
-      de:x.text, zh:(x.ai && x.ai.zh) || "",
+      de:x.text, zh:(x.ai && x.ai.zh) || x.zh || "",
       grammar:(x.ai && x.ai.grammar) || (x.anno ? x.anno.patterns : []),
       vocab:(x.ai && x.ai.vocab) || [],
+      tokens:(x.anno && x.anno.tokens) || null,
       chunks: x.chunksAuto || autoChunks(x.text),
       pron: pronTipsFor(x.text)
     };
@@ -4850,7 +4556,7 @@ const App = {
       id:x.id, topic:x.topic, isNews:false,
       de:x.de, zh:x.zh, grammar:x.grammar, vocab:x.vocab,
       chunks:(x.chunks || []).map(c => Array.isArray(c) ? {de:c[0], zh:c[1]} : ({de:c.de, zh:c.zh})),
-      qa:x.qa, weekly:!!x.weekly, src:x.src || "", pron: pronTipsFor(x.de, x.pron)
+      qa:x.qa, weekly:!!x.weekly, src:x.src || "", tokens:(x.anno && x.anno.tokens) || null, pron: pronTipsFor(x.de, x.pron)
     };
   },
 
@@ -4868,13 +4574,21 @@ const App = {
   sentenceCardHtml(n, no){
     // 不默认高亮任何速度：只有用户点过之后才有选中态
     const ini = this.speed ? SPEEDS.find(s => s.k === this.speed) : null;
+    // 统一解释口径：内置精编语料有整句中文翻译；周更/新闻句没有，
+    // 就用逐词中文注释顶上，保证每张卡都有中文解释（而不是有的有、有的空白）。
+    const glossLine = n.zh
+      ? `<div class="zh">${escapeHtml(n.zh)}</div>`
+      : (n.tokens && n.tokens.length
+        ? `<div class="zh"><span class="tiny">逐词中文：</span>` + n.tokens.filter(t => t.gloss && /^(n\.|v\.|adj\.)/.test(t.gloss)).slice(0, 8)
+            .map(t => `<b>${escapeHtml(t.w)}</b> ${escapeHtml(t.gloss.replace(/^\w+\.\s*/, ""))}`).join(" · ") + `</div>`
+        : `<div class="zh tiny">（本句暂无中文，可在设置里配 AI 接口生成本句翻译）</div>`);
     return `<div class="card" data-sid="${n.id}">
       <h3>${no}. <span class="tag ${n.topic === "汽车" ? "auto" : n.topic === "新闻" ? "news" : "life"}">${n.topic}</span>
         <span class="spacer" style="flex:1"></span>
         <span class="tiny">${n.isNews ? n.source || "" : (n.weekly ? (n.src || "本周新语料") : "A1")}</span>
       </h3>
       <div class="de" data-de="${n.id}">${escapeHtml(n.de)}</div>
-      <div class="zh">${escapeHtml(n.zh || "")}</div>
+      ${glossLine}
       <!-- 三个控制键放在“完整句”和“分词块”之间；均无默认高亮 -->
       <div class="btnrow ctrlrow" style="margin-top:10px">
         <button class="btn" data-act="play">▶ 播放</button>
@@ -4887,13 +4601,12 @@ const App = {
       <div class="btnrow" style="margin-top:10px">
         <button class="btn ok" data-act="shadow">🎙 去录音跟读</button>
         <button class="btn" data-act="review">➕ 加入复习</button>
-        <button class="btn ghost" data-act="teach">👨‍🏫 老师讲这句</button>
       </div>
       <details class="acc"><summary>📘 A1 语法注释</summary>
         <ul class="glist">${(n.grammar || []).map(g => `<li class="gitem"><div class="g-h">${g.h}</div><div class="g-b">${g.b}</div></li>`).join("") || "<li class='tiny'>暂无</li>"}</ul>
       </details>
       <details class="acc"><summary>📖 词汇与发音</summary>
-        <div class="vocab">${(n.vocab || []).map(v => `<div class="vc"><div class="v-de">${escapeHtml(v.de)}<span class="v-pos">${v.pos || ""}</span></div><div class="v-zh">${escapeHtml(v.zh || "")}</div>${v.ex ? `<div class="v-ex">${escapeHtml(v.ex)}</div>` : ""}</div>`).join("") || "<div class='tiny'>暂无词汇表，可用「老师讲这句」查看逐词注释。</div>"}</div>
+        <div class="vocab">${(n.vocab || []).map(v => `<div class="vc"><div class="v-de">${escapeHtml(v.de)}<span class="v-pos">${v.pos || ""}</span></div><div class="v-zh">${escapeHtml(v.zh || "")}</div>${v.ex ? `<div class="v-ex">${escapeHtml(v.ex)}</div>` : ""}</div>`).join("") || "<div class='tiny'>本句暂无词汇表；上面的“逐词中文”就是这句的逐词注释。</div>"}</div>
         <ul class="glist" style="margin-top:10px">${(n.pron || []).slice(0,3).map(p => `<li class="gitem pitem"><div class="g-h">${p.h}</div><div class="g-b">${p.b}</div></li>`).join("") || ""}</ul>
       </details>
     </div>`;
@@ -4923,7 +4636,6 @@ const App = {
         if (a === "loop") { this.openShadow(n); this.startLoop(); }
         if (a === "shadow") this.openShadow(n);
         if (a === "review") { this.addReview(n); this.toast("已加入复习计划"); }
-        if (a === "teach") { this.idx = this.list.indexOf(n); App.switchView("lesson"); Teacher.teach(n); }
       });
       // 词块里的德语也要切成词 span，才能在「词块停顿」播放时逐词高亮
       card.querySelectorAll(".chunks .c-de").forEach(el => renderWordsWithOffsets(el.textContent, el));
@@ -5234,7 +4946,7 @@ const App = {
     if (!this.queue.length) {
       this.$.reviewCard.innerHTML = st.total
         ? `<div class="empty">今天到期的卡片都做完了 👍<br>下一次到期：${this.nextDueText()}</div>`
-        : `<div class="empty">复习计划还是空的。<br>先在「今日课堂」里点“把今天的新句子加入复习”，或逐句点“➕ 加入复习”。</div>`;
+        : `<div class="empty">复习队列是空的。<br>每天的 4 句会自动排进来，明天到期后再来即可；也可以直接在卡片上点“➕ 加入复习”。</div>`;
       this.$.reviewSelfGrade.innerHTML = "";
     } else this.showCard(this.queue[0]);
     this.renderTraces();

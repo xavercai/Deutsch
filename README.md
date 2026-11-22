@@ -11,7 +11,8 @@
 | `news/audio.json` | 文本 → 音频文件 的清单，页面据此播放 Conrad 德语语音 |
 | `news/audio/*.mp3` | 预合成好的 Conrad 德语音频（由工作流生成，不在仓库初次上传内容里） |
 | `scripts/fetch_daily.py` | 抓德语新闻、挑 3–5 句、写 `news/daily.json`（纯标准库） |
-| `scripts/build_audio.py` | 用免 Key 的 `edge-tts` 把「内置语料 + 当天新闻」合成为 MP3，写 `news/audio.json` |
+| `scripts/build_audio.py` | 用免 Key 的 `edge-tts` 把「内置语料 + 当天新闻 + 本周新语料」合成为 MP3；并按**音频里的真实停顿**切词块，写 `news/audio.json` + `news/chunks.json` |
+| `scripts/translate_zh.py` | 可选：用 AI 接口给周更/新闻句补中文翻译（未配 Key 则跳过） |
 | `scripts/corpus.json` | 内置语料里全部可播放文本（520 条：整句 + 词块），供上一步合成 |
 | `.github/workflows/daily.yml` | 每天北京时间 05:00 自动跑上面两步并提交 |
 
@@ -46,6 +47,22 @@
 
 > 如果你之前在手机上手动点过别的引擎（比如「☁️ 云 TTS」），它不会自动切回来。
 > 到「⑥ 设置 → 语音引擎」点一下 **📦 离线语音包** 即可；或清除该网站数据后重开。
+
+## 可选：让机器挑的句子也有中文翻译
+
+内置精编语料自带人工中文；周更/新闻句是机器从正文挑的，默认没有整句翻译（卡片会自动改用逐词中文注释）。
+想让它们也有和内置语料一样的中文，加一个 Secret 就行：
+
+仓库 `Settings` → `Secrets and variables` → `Actions` → `New repository secret`：
+
+| Name | 必填 | 说明 |
+| --- | --- | --- |
+| `AI_KEY` | 是 | 接口密钥 |
+| `AI_ENDPOINT` | 否 | 默认 `https://api.openai.com/v1/chat/completions` |
+| `AI_MODEL` | 否 | 默认 `gpt-4o-mini` |
+
+只要接口是 **OpenAI 兼容的 `/chat/completions`** 都能用（OpenAI、DeepSeek、通义、Azure OpenAI、本地 vLLM/Ollama 兼容层…）。
+没配 `AI_KEY` 时这一步直接跳过，不会报错、不影响其它功能。
 
 ## 注意
 
