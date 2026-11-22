@@ -1,6 +1,6 @@
 {
   "date": "2026-11-22",
-  "generatedAt": 1795308720585,
+  "generatedAt": 1795310141028,
   "source": "live",
   "feedsOk": 4,
   "cards": [
@@ -9,7 +9,13 @@
       "topic": "生活",
       "source": "Tagesschau（德国电视一台）",
       "title": "Ministerium will Autobahntankstellen vom Spritpreisdeckel ausnehmen",
-      "text": "Ministerium will Autobahntankstellen vom Spritpreisdeckel ausnehmen",
+      "text": "Ab Januar soll der Preisdeckel für Benzin und Diesel gelten.",
+      "chunks": [
+        "Ab Januar soll",
+        "der Preisdeckel",
+        "für Benzin und",
+        "Diesel gelten."
+      ],
       "link": "https://www.tagesschau.de/inland/spritpreis-autobahntankstellen-ausnahme-100.html",
       "date": "Sat, 21 Nov 2026 16:55:59 +0100",
       "isNews": true
@@ -19,7 +25,14 @@
       "topic": "生活",
       "source": "Tagesschau（德国电视一台）",
       "title": "Bilger fordert Bekenntnis der Autoindustrie zu Deutschland",
-      "text": "Bilger fordert Bekenntnis der Autoindustrie zu Deutschland",
+      "text": "Die EU könnte Autokonzernen erlauben, auch nach 2035 neue Verbrenner und Hybride zu verkaufen.",
+      "chunks": [
+        "Die EU könnte",
+        "Autokonzernen erlauben,",
+        "auch nach 2035",
+        "neue Verbrenner und",
+        "Hybride zu verkaufen."
+      ],
       "link": "https://www.tagesschau.de/inland/bilger-fordert-bekenntnis-der-autohersteller-zu-deutschland-100.html",
       "date": "Sat, 21 Nov 2026 12:19:36 +0100",
       "isNews": true
@@ -29,7 +42,14 @@
       "topic": "生活",
       "source": "Deutsche Welle 德语新闻",
       "title": "Können sich die deutschen Automobilbauer noch erholen?",
-      "text": "Können sich die deutschen Automobilbauer noch erholen?",
+      "text": "Einige Branchenbeobachter sehen immer noch ein kleines Zeitfenster, um den Niedergang aufzuhalten.",
+      "chunks": [
+        "Einige Branchenbeobachter",
+        "sehen immer noch",
+        "ein kleines Zeitfenster,",
+        "um den Niedergang",
+        "aufzuhalten."
+      ],
       "link": "https://www.dw.com/de/können-sich-die-deutschen-automobilbauer-noch-erholen/a-80003359?maca=de-rss-de-all-1119-rdf",
       "date": "2026-11-20T15:13:00Z",
       "isNews": true
@@ -38,10 +58,14 @@
       "id": "N-2026-11-22-3",
       "topic": "生活",
       "source": "Deutsche Welle 德语新闻",
-      "title": "GTA-Release: Warum \"Grand Theft Auto VI\" mehr als nur ein Spiel ist",
-      "text": "GTA-Release: Warum \"Grand Theft Auto VI\" mehr als nur ein Spiel ist",
-      "link": "https://www.dw.com/de/gta-release-warum-grand-theft-auto-vi-mehr-als-nur-ein-spiel-ist/a-79933772?maca=de-rss-de-all-1119-rdf",
-      "date": "2026-11-17T07:37:00Z",
+      "title": "Autokrise: Was wird aus der 35-Stunden-Woche in Deutschland?",
+      "text": "Das soll die Wettbewerbsfähigkeit steigern.",
+      "chunks": [
+        "Das soll die",
+        "Wettbewerbsfähigkeit steigern."
+      ],
+      "link": "https://www.dw.com/de/autokrise-was-wird-aus-der-35-stunden-woche-in-deutschland/a-79325501?maca=de-rss-de-all-1119-rdf",
+      "date": "2026-09-21T12:23:00Z",
       "isNews": true
     },
     {
@@ -49,7 +73,14 @@
       "topic": "汽车",
       "source": "auto motor und sport",
       "title": "SO TESTET DIE INDUSTRIE: So arbeitet die Autopflegemittelbranche",
-      "text": "SO TESTET DIE INDUSTRIE: So arbeitet die Autopflegemittelbranche",
+      "text": "Dennoch sind sich Unternehmen und Verbände einig, dass es gewisse Spielregeln braucht.",
+      "chunks": [
+        "Dennoch sind sich",
+        "Unternehmen und Verbände",
+        "einig,",
+        "dass es gewisse",
+        "Spielregeln braucht."
+      ],
       "link": "https://www.auto-motor-und-sport.de/news/so-testet-die-industrie/",
       "date": "Thu, 08 Oct 2026 14:14:48 +0200",
       "isNews": true
